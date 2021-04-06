@@ -421,7 +421,7 @@ impl FixSpec {
 
         // Generate code
         let mut f_code = BufWriter::new(fs::File::create(
-            out_dir.as_ref().join(format!("{}_gen.rs", stem)),
+            out_dir.as_ref().join(format!("{}_fields.rs", stem)),
         )?);
 
         // Generate fields

@@ -1,25 +1,25 @@
 pub mod fixt11 {
-    include!(concat!(env!("OUT_DIR"), "/FIXT11_gen.rs"));
+    include!(concat!(env!("OUT_DIR"), "/FIXT11_fields.rs"));
 }
 
 pub mod fix40 {
-    include!(concat!(env!("OUT_DIR"), "/FIX40_gen.rs"));
+    include!(concat!(env!("OUT_DIR"), "/FIX40_fields.rs"));
 }
 
 pub mod fix41 {
-    include!(concat!(env!("OUT_DIR"), "/FIX41_gen.rs"));
+    include!(concat!(env!("OUT_DIR"), "/FIX41_fields.rs"));
 }
 
 pub mod fix42 {
-    include!(concat!(env!("OUT_DIR"), "/FIX42_gen.rs"));
+    include!(concat!(env!("OUT_DIR"), "/FIX42_fields.rs"));
 }
 
 pub mod fix43 {
-    include!(concat!(env!("OUT_DIR"), "/FIX43_gen.rs"));
+    include!(concat!(env!("OUT_DIR"), "/FIX43_fields.rs"));
 }
 
 pub mod fix44 {
-    include!(concat!(env!("OUT_DIR"), "/FIX44_gen.rs"));
+    include!(concat!(env!("OUT_DIR"), "/FIX44_fields.rs"));
 }
 
 pub trait FixID {
