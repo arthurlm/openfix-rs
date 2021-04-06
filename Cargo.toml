@@ -2,4 +2,5 @@
 members = [
     "quickfix-spec-generator",
     "quickfix-messages",
+    "example/custom-dict"
 ]

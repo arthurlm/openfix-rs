@@ -1,0 +1,21 @@
+<fix type='FIX' major='4' minor='4' servicepack='12'>
+ <messages>
+  <message name='SendTopSecretAwesomeOrder' msgtype='ZZX' msgcat='app'>
+   <field name='SecretOrderId' required='Y' />
+   <field name='UserData' required='N' />
+   <field name='TargetAccount' required='N' />
+   <field name='Text' required='N' />
+   <field name='EncodedTextLen' required='N' />
+   <field name='EncodedText' required='N' />
+  </message>
+ </messages>
+ <fields>
+  <field number='16248' name='SecretOrderId' type='STRING' />
+  <field number='16249' name='UserData' type='STRING' />
+  <field number='16250' name='TargetAccount' type='STRING' >
+   <value enum='M' description='MINE' />
+   <value enum='T' description='THEIRS' />
+   <value enum='O' description='OURS' />
+  </field>
+ </fields>
+</fix>
