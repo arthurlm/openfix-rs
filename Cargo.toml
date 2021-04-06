@@ -1,5 +1,5 @@
 [workspace]
 members = [
     "quickfix-spec-generator",
-    "quickfix-rs",
+    "quickfix-messages",
 ]

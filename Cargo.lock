@@ -90,7 +90,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "quickfix-rs"
+name = "quickfix-messages"
 version = "0.1.0"
 dependencies = [
  "chrono",
