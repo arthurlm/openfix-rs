@@ -25,6 +25,10 @@ pub mod fix44 {
     include!(concat!(env!("OUT_DIR"), "/FIX44_fields.rs"));
 }
 
+pub mod prelude {
+    pub use super::{AsFixMessage, FixID, FixParseError, FromFixMessage};
+}
+
 pub trait FixID {
     /// FIX field ID
     const FIELD_ID: u32;

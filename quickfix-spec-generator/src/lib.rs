@@ -5,6 +5,18 @@ use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 
 // =====================================
+// Define common code block;
+
+static CODE_HEADER: &str = "
+#[allow(unused_imports)]
+use chrono::prelude::*;
+use std::fmt;
+
+use crate::prelude::*;
+
+";
+
+// =====================================
 // Basic types
 
 /// Basic wrapper to convert FIX required field to boolean
@@ -400,18 +412,7 @@ impl FixSpec {
         )?);
 
         // Generate fields
-        write!(
-            f_code,
-            "
-#[allow(unused_imports)]
-use chrono::prelude::*;
-use std::fmt;
-
-use crate::{{FixID, AsFixMessage, FromFixMessage, FixParseError}};
-
-"
-        )?;
-
+        write!(f_code, "{}", CODE_HEADER)?;
         for field in &self.field.items {
             write!(f_code, "{}", field.as_code())?;
         }
