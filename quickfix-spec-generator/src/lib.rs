@@ -209,7 +209,7 @@ impl FieldValue {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct FieldDef {
     name: String,
-    number: usize,
+    number: u32,
     #[serde(rename = "type")]
     field_type: FieldType,
     #[serde(rename = "value", default)]
@@ -221,7 +221,7 @@ impl FieldDef {
         if self.values.is_empty() {
             format!(
                 "
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct {field_name} {{
     pub value: {content_type}
 }}
@@ -233,7 +233,7 @@ impl {field_name} {{
 }}
 
 impl FixID for {field_name} {{
-    const FIELD_ID: usize = {field_id};
+    const FIELD_ID: u32 = {field_id};
 }}
 
 impl fmt::Display for {field_name} {{
@@ -302,13 +302,13 @@ impl FromFixMessage for {field_name} {{
 
             format!(
                 "
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum {field_name} {{
 {field_names}
 }}
 
 impl FixID for {field_name} {{
-    const FIELD_ID: usize = {field_id};
+    const FIELD_ID: u32 = {field_id};
 }}
 
 impl fmt::Display for {field_name} {{

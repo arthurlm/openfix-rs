@@ -1,3 +1,6 @@
+use std::num::ParseIntError;
+use thiserror::Error;
+
 pub mod fixt11 {
     include!(concat!(env!("OUT_DIR"), "/FIXT11_fields.rs"));
 }
@@ -24,7 +27,7 @@ pub mod fix44 {
 
 pub trait FixID {
     /// FIX field ID
-    const FIELD_ID: usize;
+    const FIELD_ID: u32;
 }
 
 pub trait AsFixMessage: FixID {
@@ -37,8 +40,15 @@ pub trait AsFixMessage: FixID {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Error)]
 pub enum FixParseError {
+    #[error("invalid key: {0}")]
+    InvalidKey(#[from] ParseIntError),
+
+    #[error("invalid key ID: {0}")]
+    InvalidKeyId(u32),
+
+    #[error("invalid data")]
     InvalidData,
 }
 
@@ -47,6 +57,24 @@ pub trait FromFixMessage: FixID {
     fn from_fix_value(value: &str) -> Result<Self, FixParseError>
     where
         Self: Sized;
+
+    fn decode_field(value: &str) -> Result<Self, FixParseError>
+    where
+        Self: Sized,
+    {
+        let values: Vec<_> = value.splitn(2, '=').collect();
+        match values[..] {
+            [key, payload] => {
+                let key_id: i64 = key.parse()?;
+                if key_id as u32 == Self::FIELD_ID {
+                    Self::from_fix_value(payload)
+                } else {
+                    Err(FixParseError::InvalidKeyId(key_id as u32))
+                }
+            }
+            _ => Err(FixParseError::InvalidData),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -59,7 +87,7 @@ mod tests {
     }
 
     impl FixID for TestStruct {
-        const FIELD_ID: usize = 42;
+        const FIELD_ID: u32 = 42;
     }
 
     impl AsFixMessage for TestStruct {
@@ -84,6 +112,28 @@ mod tests {
         assert_eq!(field.encode_field(), "42=foobar".to_string());
     }
 
+    #[test]
+    fn test_struct_decode() {
+        assert_eq!(
+            TestStruct::decode_field("foo"),
+            Err(FixParseError::InvalidData)
+        );
+        assert_eq!(
+            TestStruct::decode_field("foo=bar"),
+            Err(FixParseError::InvalidKey("foo".parse::<i32>().unwrap_err()))
+        );
+        assert_eq!(
+            TestStruct::decode_field("12=bar"),
+            Err(FixParseError::InvalidKeyId(12))
+        );
+        assert_eq!(
+            TestStruct::decode_field("42=foobar"),
+            Ok(TestStruct {
+                value: "foobar".into(),
+            })
+        );
+    }
+
     #[derive(Debug, PartialEq)]
     enum TestEnum {
         Opt1,
@@ -91,7 +141,7 @@ mod tests {
     }
 
     impl FixID for TestEnum {
-        const FIELD_ID: usize = 29;
+        const FIELD_ID: u32 = 29;
     }
 
     impl AsFixMessage for TestEnum {
@@ -120,5 +170,23 @@ mod tests {
         assert_eq!(field.encode_field(), "29=opt1".to_string());
         let field = TestEnum::Opt2;
         assert_eq!(field.encode_field(), "29=opt2".to_string());
+    }
+
+    #[test]
+    fn test_enum_decode() {
+        assert_eq!(
+            TestEnum::decode_field("foo"),
+            Err(FixParseError::InvalidData)
+        );
+        assert_eq!(
+            TestEnum::decode_field("foo=bar"),
+            Err(FixParseError::InvalidKey("foo".parse::<i32>().unwrap_err()))
+        );
+        assert_eq!(
+            TestEnum::decode_field("12=bar"),
+            Err(FixParseError::InvalidKeyId(12))
+        );
+        assert_eq!(TestEnum::decode_field("29=opt1"), Ok(TestEnum::Opt1));
+        assert_eq!(TestEnum::decode_field("29=opt2"), Ok(TestEnum::Opt2));
     }
 }
