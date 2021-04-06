@@ -1,6 +1,7 @@
+use convert_case::{Case, Casing};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 
 // =====================================
@@ -70,6 +71,41 @@ pub enum FieldType {
     PriceOffset,
     Percentage,
     Country,
+}
+
+impl FieldType {
+    fn as_rust_type(&self) -> &'static str {
+        // Some type may be improved
+        match *self {
+            Self::Boolean => "bool",
+            Self::Char => "char",
+            Self::Int => "i32",
+            Self::Float => "f64",
+            Self::String => "String",
+            Self::Seqnum => "usize",
+            Self::Length => "usize",
+            Self::UtcTimestamp => "f64",
+            Self::MonthYear => "String",
+            Self::DayOfMonth => "u8",
+            Self::UtcDate => "chrono::NaiveDate",
+            Self::UtcDateOnly => "String",
+            Self::Date => "String",
+            Self::UtcTimeOnly => "String",
+            Self::Time => "chrono::NaiveTime",
+            Self::Data => "String",
+            Self::NumInGroup => "String",
+            Self::Price => "f64",
+            Self::Amount => "f64",
+            Self::Quantity => "f64",
+            Self::Currency => "String",
+            Self::MultipleValueString => "String",
+            Self::Exchange => "String",
+            Self::LocalMarketDate => "String",
+            Self::PriceOffset => "f64",
+            Self::Percentage => "f64",
+            Self::Country => "String",
+        }
+    }
 }
 
 // =====================================
@@ -159,6 +195,17 @@ pub struct FieldValue {
     description: String,
 }
 
+impl FieldValue {
+    fn as_rust_desc(&self) -> String {
+        assert!(!self.description.is_empty());
+        if !char::is_ascii_alphabetic(&self.description.chars().nth(0).unwrap()) {
+            format!("Value{}", self.description.to_case(Case::UpperCamel))
+        } else {
+            self.description.to_case(Case::UpperCamel)
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct FieldDef {
     name: String,
@@ -167,6 +214,163 @@ pub struct FieldDef {
     field_type: FieldType,
     #[serde(rename = "value", default)]
     values: Vec<FieldValue>,
+}
+
+impl FieldDef {
+    fn as_code(&self) -> String {
+        if self.values.is_empty() {
+            format!(
+                "
+#[derive(Debug)]
+pub struct {field_name} {{
+    pub value: {content_type}
+}}
+
+impl {field_name} {{
+    pub fn new(value: {content_type}) -> Self {{
+        Self {{ value }}
+    }}
+}}
+
+impl FixID for {field_name} {{
+    const FIELD_ID: usize = {field_id};
+}}
+
+impl AsFixMessage for {field_name} {{
+    fn as_fix_str(&self) -> &'static str {{
+        \"{field_name_upper}\"
+    }}
+
+    fn as_fix_value(&self) -> String {{
+        format!(\"{{}}\", self.value)
+    }}
+}}
+
+impl FromFixMessage for {field_name} {{
+    fn from_fix_str(value: &str) -> Result<Self, FixParseError> {{
+        if value == \"{field_name_upper}\" {{
+            Err(FixParseError::MissingPayload)
+        }} else {{
+            Err(FixParseError::InvalidData)
+        }}
+    }}
+
+    fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
+        let value = value.parse().map_err(|_e| FixParseError::InvalidData)?;
+        Ok(Self {{ value }})
+    }}
+}}
+
+",
+                field_name = self.name,
+                field_name_upper = self.name.to_case(Case::UpperSnake),
+                field_id = self.number,
+                content_type = self.field_type.as_rust_type(),
+            )
+        } else {
+            assert!(matches!(
+                self.field_type,
+                FieldType::String
+                    | FieldType::Char
+                    | FieldType::Int
+                    | FieldType::MultipleValueString
+                    | FieldType::Boolean
+                    | FieldType::NumInGroup
+            ));
+
+            let field_names = self
+                .values
+                .iter()
+                .map(|x| format!("\t{},", x.as_rust_desc()))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let as_field_descriptions = self
+                .values
+                .iter()
+                .map(|x| format!("\t\t\tSelf::{} => \"{}\",", x.as_rust_desc(), x.description))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let from_field_descriptions = self
+                .values
+                .iter()
+                .map(|x| {
+                    format!(
+                        "\t\t\t\"{}\" => Ok(Self::{}),",
+                        x.description,
+                        x.as_rust_desc()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let as_field_values = self
+                .values
+                .iter()
+                .map(|x| format!("\t\t\tSelf::{} => \"{}\",", x.as_rust_desc(), x.value))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let from_field_values = self
+                .values
+                .iter()
+                .map(|x| format!("\t\t\t\"{}\" => Ok(Self::{}),", x.value, x.as_rust_desc()))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            format!(
+                "
+#[derive(Debug)]
+pub enum {field_name} {{
+{field_names}
+}}
+
+impl FixID for {field_name} {{
+    const FIELD_ID: usize = {field_id};
+}}
+
+impl AsFixMessage for {field_name} {{
+    fn as_fix_str(&self) -> &'static str {{
+        match *self {{
+{as_field_descriptions}
+        }}
+    }}
+
+    fn as_fix_value(&self) -> String {{
+        match *self {{
+{as_field_values}
+        }}.to_string()
+    }}
+}}
+
+impl FromFixMessage for {field_name} {{
+    fn from_fix_str(value: &str) -> Result<Self, FixParseError> {{
+        match value {{
+{from_field_descriptions}
+            _ => Err(FixParseError::InvalidData),
+        }}
+    }}
+
+    fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
+        match value {{
+{from_field_values}
+            _ => Err(FixParseError::InvalidData),
+        }}
+    }}
+}}
+
+",
+                field_name = self.name,
+                field_id = self.number,
+                field_names = field_names,
+                as_field_descriptions = as_field_descriptions,
+                as_field_values = as_field_values,
+                from_field_descriptions = from_field_descriptions,
+                from_field_values = from_field_values,
+            )
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -190,13 +394,16 @@ pub struct FixSpec {
     trailer: TrailerSpec,
 
     /// Message components (common group like)
-    components: ComponentSpec,
+    #[serde(rename = "components")]
+    component: ComponentSpec,
 
     /// Know networks and standardized messages
-    messages: MessagesSpec,
+    #[serde(rename = "messages")]
+    message: MessagesSpec,
 
     /// Message known fields
-    fields: FieldSpec,
+    #[serde(rename = "fields")]
+    field: FieldSpec,
 }
 
 impl FixSpec {
@@ -211,6 +418,27 @@ impl FixSpec {
             out_dir.as_ref().join(format!("{}.parsed.json", stem)),
         )?);
         serde_json::to_writer_pretty(f_parsed, self)?;
+
+        // Generate code
+        let mut f_code = BufWriter::new(fs::File::create(
+            out_dir.as_ref().join(format!("{}_gen.rs", stem)),
+        )?);
+
+        // Generate fields
+        write!(
+            f_code,
+            "
+#[allow(unused_imports)]
+use chrono::prelude::*;
+
+use crate::{{FixID, AsFixMessage, FromFixMessage, FixParseError}};
+
+"
+        )?;
+
+        for field in &self.field.items {
+            write!(f_code, "{}", field.as_code())?;
+        }
 
         Ok(())
     }
