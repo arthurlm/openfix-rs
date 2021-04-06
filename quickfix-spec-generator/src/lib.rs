@@ -558,7 +558,10 @@ impl FixSpec {
         write!(
             f_fields,
             "
+#[allow(unused_imports)]
 use std::fmt;
+
+#[allow(unused_imports)]
 use crate::prelude::*;
 
 ",
@@ -567,6 +570,7 @@ use crate::prelude::*;
         write!(
             f_messages,
             "
+#[allow(unused_imports)]
 use super::fields::*;
 
 ",
