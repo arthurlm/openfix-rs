@@ -236,11 +236,13 @@ impl FixID for {field_name} {{
     const FIELD_ID: usize = {field_id};
 }}
 
-impl AsFixMessage for {field_name} {{
-    fn as_fix_str(&self) -> &'static str {{
-        \"{field_name_upper}\"
+impl fmt::Display for {field_name} {{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
+        write!(f, \"{field_name_upper}({{}})\", self.value)
     }}
+}}
 
+impl AsFixMessage for {field_name} {{
     fn as_fix_value(&self) -> String {{
         format!(\"{{}}\", self.value)
     }}
@@ -309,13 +311,15 @@ impl FixID for {field_name} {{
     const FIELD_ID: usize = {field_id};
 }}
 
-impl AsFixMessage for {field_name} {{
-    fn as_fix_str(&self) -> &'static str {{
-        match *self {{
+impl fmt::Display for {field_name} {{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
+        write!(f, \"{{}}\", match *self {{
 {as_field_descriptions}
-        }}
+        }})
     }}
+}}
 
+impl AsFixMessage for {field_name} {{
     fn as_fix_value(&self) -> String {{
         match *self {{
 {as_field_values}
@@ -401,6 +405,7 @@ impl FixSpec {
             "
 #[allow(unused_imports)]
 use chrono::prelude::*;
+use std::fmt;
 
 use crate::{{FixID, AsFixMessage, FromFixMessage, FixParseError}};
 

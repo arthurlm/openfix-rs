@@ -28,12 +28,10 @@ pub trait FixID {
 }
 
 pub trait AsFixMessage: FixID {
-    /// FIX standardized text representation
-    fn as_fix_str(&self) -> &'static str;
-
     /// FIX value representation
     fn as_fix_value(&self) -> String;
 
+    /// Encode field as "Key=Value"
     fn encode_field(&self) -> String {
         format!("{}={}", Self::FIELD_ID, self.as_fix_value())
     }
