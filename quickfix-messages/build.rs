@@ -1,5 +1,5 @@
 use quickfix_spec_generator::Builder;
-use std::env;
+use std::{env, fs};
 
 fn main() {
     let builder = Builder::new()
@@ -10,6 +10,7 @@ fn main() {
         .add_path("../protocol-spec/FIX44.xml")
         .add_path("../protocol-spec/FIXT11.xml");
 
-    builder.build("./test-out").unwrap();
+    fs::create_dir_all("./out-preview").unwrap();
+    builder.build("./out-preview").unwrap();
     builder.build(&env::var("OUT_DIR").unwrap()).unwrap();
 }
