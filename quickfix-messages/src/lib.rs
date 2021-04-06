@@ -2,27 +2,57 @@ use std::num::ParseIntError;
 use thiserror::Error;
 
 pub mod fixt11 {
-    include!(concat!(env!("OUT_DIR"), "/FIXT11_fields.rs"));
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/FIXT11_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/FIXT11_messages.rs"));
+    }
 }
 
 pub mod fix40 {
-    include!(concat!(env!("OUT_DIR"), "/FIX40_fields.rs"));
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/FIX40_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/FIX40_messages.rs"));
+    }
 }
 
 pub mod fix41 {
-    include!(concat!(env!("OUT_DIR"), "/FIX41_fields.rs"));
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/FIX41_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/FIX41_messages.rs"));
+    }
 }
 
 pub mod fix42 {
-    include!(concat!(env!("OUT_DIR"), "/FIX42_fields.rs"));
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/FIX42_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/FIX42_messages.rs"));
+    }
 }
 
 pub mod fix43 {
-    include!(concat!(env!("OUT_DIR"), "/FIX43_fields.rs"));
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/FIX43_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/FIX43_messages.rs"));
+    }
 }
 
 pub mod fix44 {
-    include!(concat!(env!("OUT_DIR"), "/FIX44_fields.rs"));
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/FIX44_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/FIX44_messages.rs"));
+    }
 }
 
 pub mod prelude {

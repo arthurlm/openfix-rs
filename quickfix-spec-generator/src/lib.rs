@@ -10,9 +10,6 @@ use std::path::Path;
 static CODE_HEADER: &str = "
 #[allow(unused_imports)]
 use chrono::prelude::*;
-use std::fmt;
-
-use crate::prelude::*;
 
 ";
 
@@ -123,10 +120,23 @@ impl FieldType {
 // =====================================
 /// Reference to FieldDef
 
+fn format_optional_struct_field(required: &Required, field_name: &str, type_name: &str) -> String {
+    match required {
+        Required::Y => format!("{}: {}", field_name, type_name),
+        Required::N => format!("{}: Option<{}>", field_name, type_name),
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct FieldRef {
     name: String,
     required: Required,
+}
+
+impl FieldRef {
+    fn as_struct_field_item(&self) -> String {
+        format_optional_struct_field(&self.required, &self.name.to_case(Case::Snake), &self.name)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -136,6 +146,12 @@ pub struct ComponentRef {
     required: Required,
 }
 
+impl ComponentRef {
+    fn as_struct_field_item(&self) -> String {
+        format_optional_struct_field(&self.required, &self.name.to_case(Case::Snake), &self.name)
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct GroupRef {
     name: String,
@@ -143,6 +159,40 @@ pub struct GroupRef {
 
     #[serde(rename = "$value")]
     refs: Vec<Reference>,
+}
+
+impl GroupRef {
+    fn group_type_name(&self) -> String {
+        format!("Group{}", self.name.to_case(Case::UpperCamel))
+    }
+
+    fn as_group_struct(&self) -> String {
+        let group_elements = self
+            .refs
+            .iter()
+            .map(|x| format!("\t{0}({0}),", x.as_type_value()))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        format!(
+            "
+#[derive(Debug, PartialEq)]
+pub enum {group_type_name} {{
+{group_elements}
+}}
+",
+            group_type_name = self.group_type_name(),
+            group_elements = group_elements,
+        )
+    }
+
+    fn as_struct_field_item(&self) -> String {
+        format_optional_struct_field(
+            &self.required,
+            &self.name.to_case(Case::Snake),
+            &self.group_type_name(),
+        )
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -157,6 +207,32 @@ pub enum Reference {
     GroupRef(GroupRef),
 }
 
+impl Reference {
+    fn as_type_value<'a>(&'a self) -> &'a str {
+        match self {
+            Self::FieldRef(x) => &x.name,
+            Self::ComponentRef(x) => &x.name,
+            Self::GroupRef(x) => &x.name,
+        }
+    }
+
+    fn as_group_struct(&self) -> String {
+        match self {
+            Self::FieldRef(_) => "".to_string(),
+            Self::ComponentRef(_) => "".to_string(),
+            Self::GroupRef(x) => x.as_group_struct(),
+        }
+    }
+
+    fn as_struct_field_item(&self) -> String {
+        match self {
+            Self::FieldRef(x) => x.as_struct_field_item(),
+            Self::ComponentRef(x) => x.as_struct_field_item(),
+            Self::GroupRef(x) => x.as_struct_field_item(),
+        }
+    }
+}
+
 // =====================================
 // Message spec
 
@@ -166,10 +242,74 @@ pub struct HeaderSpec {
     refs: Vec<Reference>,
 }
 
+impl HeaderSpec {
+    fn as_code(&self) -> String {
+        let groups = self
+            .refs
+            .iter()
+            .map(|x| x.as_group_struct())
+            .collect::<Vec<_>>()
+            .join("");
+
+        let fields = self
+            .refs
+            .iter()
+            .map(|x| format!("\t{},", x.as_struct_field_item()))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        format!(
+            "
+{groups}
+
+#[derive(Debug, PartialEq)]
+struct MessageHeader {{
+{fields}
+}}
+
+",
+            fields = fields,
+            groups = groups,
+        )
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct TrailerSpec {
     #[serde(rename = "$value")]
     refs: Vec<Reference>,
+}
+
+impl TrailerSpec {
+    fn as_code(&self) -> String {
+        let groups = self
+            .refs
+            .iter()
+            .map(|x| x.as_group_struct())
+            .collect::<Vec<_>>()
+            .join("");
+
+        let fields = self
+            .refs
+            .iter()
+            .map(|x| format!("\t{},", x.as_struct_field_item()))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        format!(
+            "
+{groups}
+
+#[derive(Debug, PartialEq)]
+struct MessageTrailer {{
+{fields}
+}}
+
+",
+            fields = fields,
+            groups = groups,
+        )
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -411,13 +551,37 @@ impl FixSpec {
         serde_json::to_writer_pretty(f_parsed, self)?;
 
         // Generate code
-        let mut f_code = open_file_writer!("{}_fields.rs", stem);
+        let mut f_fields = open_file_writer!("{}_fields.rs", stem);
+        let mut f_messages = open_file_writer!("{}_messages.rs", stem);
+
+        write!(f_fields, "{}", CODE_HEADER)?;
+        write!(
+            f_fields,
+            "
+use std::fmt;
+use crate::prelude::*;
+
+",
+        )?;
+        write!(f_messages, "{}", CODE_HEADER)?;
+        write!(
+            f_messages,
+            "
+use super::fields::*;
+
+",
+        )?;
 
         // Generate fields
-        write!(f_code, "{}", CODE_HEADER)?;
         for field in &self.field.items {
-            write!(f_code, "{}", field.as_code())?;
+            write!(f_fields, "{}", field.as_code())?;
         }
+
+        // Generate headers
+        write!(f_messages, "{}", self.header.as_code())?;
+
+        // Generate trailers
+        write!(f_messages, "{}", self.trailer.as_code())?;
 
         Ok(())
     }
