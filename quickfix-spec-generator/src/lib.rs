@@ -400,16 +400,18 @@ impl FixSpec {
     {
         let stem = src_filename.as_ref().file_stem().unwrap().to_str().unwrap();
 
+        macro_rules! open_file_writer {
+            ($($arg:tt)*)  => {
+                BufWriter::new(fs::File::create(out_dir.as_ref().join(format!($($arg)*)))?)
+            };
+        }
+
         // Dump parsed XML
-        let f_parsed = BufWriter::new(fs::File::create(
-            out_dir.as_ref().join(format!("{}.parsed.json", stem)),
-        )?);
+        let f_parsed = open_file_writer!("{}.parsed.json", stem);
         serde_json::to_writer_pretty(f_parsed, self)?;
 
         // Generate code
-        let mut f_code = BufWriter::new(fs::File::create(
-            out_dir.as_ref().join(format!("{}_fields.rs", stem)),
-        )?);
+        let mut f_code = open_file_writer!("{}_fields.rs", stem);
 
         // Generate fields
         write!(f_code, "{}", CODE_HEADER)?;
