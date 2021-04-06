@@ -238,7 +238,7 @@ impl Reference {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct HeaderSpec {
-    #[serde(rename = "$value")]
+    #[serde(rename = "$value", default)]
     refs: Vec<Reference>,
 }
 
@@ -276,7 +276,7 @@ struct MessageHeader {{
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct TrailerSpec {
-    #[serde(rename = "$value")]
+    #[serde(rename = "$value", default)]
     refs: Vec<Reference>,
 }
 
@@ -516,13 +516,13 @@ pub struct FixSpec {
     servicepack: u8,
 
     /// Message header allowed fields references
-    header: HeaderSpec,
+    header: Option<HeaderSpec>,
     /// Message trailer allowed fields references
-    trailer: TrailerSpec,
+    trailer: Option<TrailerSpec>,
 
     /// Message components (common group like)
     #[serde(rename = "components")]
-    component: ComponentSpec,
+    component: Option<ComponentSpec>,
 
     /// Know networks and standardized messages
     #[serde(rename = "messages")]
@@ -578,10 +578,14 @@ use super::fields::*;
         }
 
         // Generate headers
-        write!(f_messages, "{}", self.header.as_code())?;
+        if let Some(header) = &self.header {
+            write!(f_messages, "{}", header.as_code())?;
+        }
 
         // Generate trailers
-        write!(f_messages, "{}", self.trailer.as_code())?;
+        if let Some(trailer) = &self.trailer {
+            write!(f_messages, "{}", trailer.as_code())?;
+        }
 
         Ok(())
     }
