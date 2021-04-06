@@ -33,20 +33,18 @@ pub trait AsFixMessage: FixID {
 
     /// FIX value representation
     fn as_fix_value(&self) -> String;
+
+    fn encode_field(&self) -> String {
+        format!("{}={}", Self::FIELD_ID, self.as_fix_value())
+    }
 }
 
 #[derive(Debug)]
 pub enum FixParseError {
     InvalidData,
-    MissingPayload,
 }
 
 pub trait FromFixMessage: FixID {
-    /// FIX standardized text representation
-    fn from_fix_str(value: &str) -> Result<Self, FixParseError>
-    where
-        Self: Sized;
-
     /// FIX value representation
     fn from_fix_value(value: &str) -> Result<Self, FixParseError>
     where

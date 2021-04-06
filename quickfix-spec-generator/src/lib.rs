@@ -247,14 +247,6 @@ impl AsFixMessage for {field_name} {{
 }}
 
 impl FromFixMessage for {field_name} {{
-    fn from_fix_str(value: &str) -> Result<Self, FixParseError> {{
-        if value == \"{field_name_upper}\" {{
-            Err(FixParseError::MissingPayload)
-        }} else {{
-            Err(FixParseError::InvalidData)
-        }}
-    }}
-
     fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
         let value = value.parse().map_err(|_e| FixParseError::InvalidData)?;
         Ok(Self {{ value }})
@@ -289,19 +281,6 @@ impl FromFixMessage for {field_name} {{
                 .values
                 .iter()
                 .map(|x| format!("\t\t\tSelf::{} => \"{}\",", x.as_rust_desc(), x.description))
-                .collect::<Vec<_>>()
-                .join("\n");
-
-            let from_field_descriptions = self
-                .values
-                .iter()
-                .map(|x| {
-                    format!(
-                        "\t\t\t\"{}\" => Ok(Self::{}),",
-                        x.description,
-                        x.as_rust_desc()
-                    )
-                })
                 .collect::<Vec<_>>()
                 .join("\n");
 
@@ -345,13 +324,6 @@ impl AsFixMessage for {field_name} {{
 }}
 
 impl FromFixMessage for {field_name} {{
-    fn from_fix_str(value: &str) -> Result<Self, FixParseError> {{
-        match value {{
-{from_field_descriptions}
-            _ => Err(FixParseError::InvalidData),
-        }}
-    }}
-
     fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
         match value {{
 {from_field_values}
@@ -366,7 +338,6 @@ impl FromFixMessage for {field_name} {{
                 field_names = field_names,
                 as_field_descriptions = as_field_descriptions,
                 as_field_values = as_field_values,
-                from_field_descriptions = from_field_descriptions,
                 from_field_values = from_field_values,
             )
         }
