@@ -64,6 +64,16 @@ pub mod fix44 {
     }
 }
 
+#[cfg(test)]
+pub mod test_spec {
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/TEST_SPEC_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/TEST_SPEC_messages.rs"));
+    }
+}
+
 pub mod prelude {
     pub use super::{
         AsFixMessage, AsFixMessageField, FixParseError, FromFixMessage, FromFixMessageField,
