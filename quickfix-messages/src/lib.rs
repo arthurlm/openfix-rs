@@ -64,7 +64,7 @@ pub mod fix44 {
     }
 }
 
-#[cfg(test)]
+#[cfg(feature = "test_spec")]
 pub mod test_spec {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/TEST_SPEC_fields.rs"));

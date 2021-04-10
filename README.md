@@ -12,8 +12,19 @@ Goals:
 
 Non goals:
 
-- Produce latency sensitive code
+- Produce latency sensitive code.
+
+  Performances is important. But we are not targeting nano seconds
+  serialization / deserialisation. Just switch to FPGA for this kind
+  of latencies.
+
 - Provide a full FIX engine
+
+## Code samples
+
+Here some integration tests to show code usages:
+
+- [serialization](./quickfix-messages/tests/test_serialize.rs)
 
 ## State of the project
 
