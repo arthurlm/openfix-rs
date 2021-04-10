@@ -352,11 +352,10 @@ impl AsFixMessage for {cls_name} {{
         for field in fields {{
             if let Some(field) = field {{
                 result.push(field);
-                result.push(b\"\\x01\".to_vec());
             }}
         }}
 
-        result.concat()
+        result.join(&b'\\x01')
     }}
 }}
 
@@ -475,11 +474,10 @@ impl AsFixMessage for {message_cls_name} {{
         for field in fields {{
             if let Some(field) = field {{
                 result.push(field);
-                result.push(b\"\\x01\".to_vec());
             }}
         }}
 
-        result.concat()
+        result.join(&b'\\x01')
     }}
 }}
 ",
