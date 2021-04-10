@@ -8,7 +8,8 @@ fn main() {
         .add_path("../protocol-spec/FIX42.xml")
         .add_path("../protocol-spec/FIX43.xml")
         .add_path("../protocol-spec/FIX44.xml")
-        .add_path("../protocol-spec/FIXT11.xml");
+        .add_path("../protocol-spec/FIXT11.xml")
+        .enable_rustfmt(true);
 
     fs::create_dir_all("./out-preview").unwrap();
     builder.build("./out-preview").unwrap();

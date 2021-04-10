@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
+use std::process::Command;
 
 // =====================================
 // Define common code block;
@@ -588,15 +589,26 @@ pub struct FixSpec {
 }
 
 impl FixSpec {
-    pub fn generate_specfile<P>(&self, out_dir: P, src_filename: P) -> anyhow::Result<()>
+    pub fn generate_specfile<P>(
+        &self,
+        out_dir: P,
+        src_filename: P,
+        enable_rustfmt: bool,
+    ) -> anyhow::Result<()>
     where
         P: AsRef<Path>,
     {
         let stem = src_filename.as_ref().file_stem().unwrap().to_str().unwrap();
 
+        macro_rules! out_file_path {
+            ($($arg:tt)*)  => {
+                out_dir.as_ref().join(format!($($arg)*))
+            };
+        }
+
         macro_rules! open_file_writer {
             ($($arg:tt)*)  => {
-                BufWriter::new(fs::File::create(out_dir.as_ref().join(format!($($arg)*)))?)
+                BufWriter::new(fs::File::create(out_file_path!($($arg)*))?)
             };
         }
 
@@ -660,6 +672,17 @@ use crate::prelude::*;
             write!(f_messages, "{}", message.as_code())?;
         }
 
+        drop(f_fields);
+        drop(f_messages);
+
+        if enable_rustfmt {
+            Command::new("rustfmt")
+                .arg(out_file_path!("{}_fields.rs", stem))
+                .arg(out_file_path!("{}_messages.rs", stem))
+                .status()
+                .expect("rustmft failed");
+        }
+
         Ok(())
     }
 }
@@ -677,6 +700,7 @@ where
     P: AsRef<Path>,
 {
     paths: Vec<P>,
+    enable_rustfmt: bool,
 }
 
 impl<P> Builder<P>
@@ -684,7 +708,10 @@ where
     P: AsRef<Path>,
 {
     pub fn new() -> Self {
-        Self { paths: vec![] }
+        Self {
+            paths: vec![],
+            enable_rustfmt: false,
+        }
     }
 
     pub fn add_path(mut self, path: P) -> Self {
@@ -692,10 +719,15 @@ where
         self
     }
 
+    pub fn enable_rustfmt(mut self, value: bool) -> Self {
+        self.enable_rustfmt = value;
+        self
+    }
+
     pub fn build(&self, out_dir: P) -> anyhow::Result<()> {
         self.paths.iter().try_for_each(|file| {
-            let spec = parse(file.as_ref())?;
-            spec.generate_specfile(out_dir.as_ref(), file.as_ref())?;
+            let spec = parse(file)?;
+            spec.generate_specfile(&out_dir, &file, self.enable_rustfmt)?;
             Ok(())
         })
     }
