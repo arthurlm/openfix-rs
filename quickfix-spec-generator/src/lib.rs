@@ -463,12 +463,32 @@ impl {message_cls_name} {{
     pub const MESSAGE_TYPE: &'static str = \"{msg_type}\";
 }}
 
+impl AsFixMessage for {message_cls_name} {{
+    fn encode_message(&self) -> Vec<u8> {{
+        let fields: Vec<Option<_>> = vec![
+            Some(self.header.encode_message()),
+{fields_encode}
+            Some(self.trailer.encode_message()),
+        ];
+
+        let mut result = vec![];
+        for field in fields {{
+            if let Some(field) = field {{
+                result.push(field);
+                result.push(b\"\\x01\".to_vec());
+            }}
+        }}
+
+        result.concat()
+    }}
+}}
 ",
             message_cls_name = self.message_cls_name(),
             message_dest = self.message_dest(),
             msg_type = self.msgtype,
             classes = gen.classes.join("\n"),
             fields = gen.fields.join("\n"),
+            fields_encode = gen.fields_encode.join("\n"),
         )
     }
 }
