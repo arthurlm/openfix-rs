@@ -4,6 +4,7 @@ use thiserror::Error;
 
 pub mod parse_helpers;
 
+#[cfg(feature = "fixt11")]
 pub mod fixt11 {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/FIXT11_fields.rs"));
@@ -13,6 +14,7 @@ pub mod fixt11 {
     }
 }
 
+#[cfg(feature = "fix40")]
 pub mod fix40 {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/FIX40_fields.rs"));
@@ -22,6 +24,7 @@ pub mod fix40 {
     }
 }
 
+#[cfg(feature = "fix41")]
 pub mod fix41 {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/FIX41_fields.rs"));
@@ -31,6 +34,7 @@ pub mod fix41 {
     }
 }
 
+#[cfg(feature = "fix42")]
 pub mod fix42 {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/FIX42_fields.rs"));
@@ -40,6 +44,7 @@ pub mod fix42 {
     }
 }
 
+#[cfg(feature = "fix43")]
 pub mod fix43 {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/FIX43_fields.rs"));
@@ -49,6 +54,7 @@ pub mod fix43 {
     }
 }
 
+#[cfg(feature = "fix44")]
 pub mod fix44 {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/FIX44_fields.rs"));
