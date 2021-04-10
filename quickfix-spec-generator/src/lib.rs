@@ -451,8 +451,8 @@ impl Message {
 #[derive(Debug, PartialEq)]
 pub struct {message_cls_name} {{
     // Common fields
-    header: MessageHeader,
-    trailer: MessageTrailer,
+    pub header: MessageHeader,
+    pub trailer: MessageTrailer,
 
     // Custom fields
 {fields}
