@@ -240,7 +240,7 @@ impl Reference {
 }
 
 // =====================================
-// Message spec
+// Shared message elements
 
 #[derive(Debug)]
 struct RefGeneratedCode {
@@ -308,6 +308,28 @@ impl TrailerSpec {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub struct Component {
+    name: String,
+    #[serde(rename = "$value", default)]
+    refs: Vec<Reference>,
+}
+
+impl Component {
+    fn as_code(&self) -> String {
+        spec_as_code(&self.name, &self.refs)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub struct ComponentSpec {
+    #[serde(rename = "$value", default)]
+    items: Vec<Component>,
+}
+
+// =====================================
+// Message spec
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct MessagesSpec {
     #[serde(rename = "$value")]
     items: Vec<Message>,
@@ -366,24 +388,8 @@ impl {message_cls_name} {{
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct Component {
-    name: String,
-    #[serde(rename = "$value", default)]
-    refs: Vec<Reference>,
-}
-
-impl Component {
-    fn as_code(&self) -> String {
-        spec_as_code(&self.name, &self.refs)
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct ComponentSpec {
-    #[serde(rename = "$value", default)]
-    items: Vec<Component>,
-}
+// =====================================
+// Field spec
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct FieldValue {
@@ -550,6 +556,9 @@ pub struct FieldSpec {
     #[serde(rename = "field")]
     items: Vec<FieldDef>,
 }
+
+// =====================================
+// Fix spec
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct FixSpec {
