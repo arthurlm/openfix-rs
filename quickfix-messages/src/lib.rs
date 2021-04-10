@@ -59,22 +59,21 @@ pub mod fix44 {
 
 pub mod prelude {
     pub use super::{
-        AsFixMessageField, FixFieldID, FixParseError, FromFixMessageField, MessageDest,
+        AsFixMessage, AsFixMessageField, FixParseError, FromFixMessage, FromFixMessageField,
+        MessageDest,
     };
 }
 
-pub trait FixFieldID {
-    /// FIX field ID
-    const FIELD_ID: u32;
-}
-
-pub trait AsFixMessageField: FixFieldID {
+pub trait AsFixMessageField {
     /// FIX value representation
     fn as_fix_value(&self) -> String;
 
+    /// Fix key representation
+    fn as_fix_key(&self) -> u32;
+
     /// Encode field as "Key=Value"
     fn encode_field(&self) -> String {
-        format!("{}={}", Self::FIELD_ID, self.as_fix_value())
+        format!("{}={}", self.as_fix_key(), self.as_fix_value())
     }
 }
 
@@ -90,13 +89,13 @@ pub enum FixParseError {
     InvalidData,
 }
 
-pub trait FromFixMessageField: FixFieldID {
+pub trait FromFixMessageField {
     /// FIX value representation
     fn from_fix_value(value: &str) -> Result<Self, FixParseError>
     where
         Self: Sized;
 
-    fn decode_field(value: &str) -> Result<Self, FixParseError>
+    fn decode_field(value: &str, field_id: u32) -> Result<Self, FixParseError>
     where
         Self: Sized,
     {
@@ -104,7 +103,7 @@ pub trait FromFixMessageField: FixFieldID {
         match values[..] {
             [key, payload] => {
                 let key_id: i64 = key.parse()?;
-                if key_id as u32 == Self::FIELD_ID {
+                if key_id as u32 == field_id {
                     Self::from_fix_value(payload)
                 } else {
                     Err(FixParseError::InvalidKeyId(key_id as u32))
@@ -113,6 +112,16 @@ pub trait FromFixMessageField: FixFieldID {
             _ => Err(FixParseError::InvalidData),
         }
     }
+}
+
+pub trait AsFixMessage {
+    fn encode_message(&self) -> Vec<u8>;
+}
+
+pub trait FromFixMessage {
+    fn decode_message(data: &[u8]) -> Result<Self, FixParseError>
+    where
+        Self: Sized;
 }
 
 #[derive(Debug, PartialEq)]
@@ -130,13 +139,13 @@ mod tests {
         value: String,
     }
 
-    impl FixFieldID for TestStruct {
-        const FIELD_ID: u32 = 42;
-    }
-
     impl AsFixMessageField for TestStruct {
         fn as_fix_value(&self) -> String {
             self.value.clone()
+        }
+
+        fn as_fix_key(&self) -> u32 {
+            42
         }
     }
 
@@ -159,19 +168,19 @@ mod tests {
     #[test]
     fn test_struct_decode() {
         assert_eq!(
-            TestStruct::decode_field("foo"),
+            TestStruct::decode_field("foo", 42),
             Err(FixParseError::InvalidData)
         );
         assert_eq!(
-            TestStruct::decode_field("foo=bar"),
+            TestStruct::decode_field("foo=bar", 42),
             Err(FixParseError::InvalidKey("foo".parse::<i32>().unwrap_err()))
         );
         assert_eq!(
-            TestStruct::decode_field("12=bar"),
+            TestStruct::decode_field("12=bar", 42),
             Err(FixParseError::InvalidKeyId(12))
         );
         assert_eq!(
-            TestStruct::decode_field("42=foobar"),
+            TestStruct::decode_field("42=foobar", 42),
             Ok(TestStruct {
                 value: "foobar".into(),
             })
@@ -184,10 +193,6 @@ mod tests {
         Opt2,
     }
 
-    impl FixFieldID for TestEnum {
-        const FIELD_ID: u32 = 29;
-    }
-
     impl AsFixMessageField for TestEnum {
         fn as_fix_value(&self) -> String {
             match *self {
@@ -195,6 +200,10 @@ mod tests {
                 Self::Opt2 => "opt2",
             }
             .to_string()
+        }
+
+        fn as_fix_key(&self) -> u32 {
+            29
         }
     }
 
@@ -219,18 +228,18 @@ mod tests {
     #[test]
     fn test_enum_decode() {
         assert_eq!(
-            TestEnum::decode_field("foo"),
+            TestEnum::decode_field("foo", 29),
             Err(FixParseError::InvalidData)
         );
         assert_eq!(
-            TestEnum::decode_field("foo=bar"),
+            TestEnum::decode_field("foo=bar", 29),
             Err(FixParseError::InvalidKey("foo".parse::<i32>().unwrap_err()))
         );
         assert_eq!(
-            TestEnum::decode_field("12=bar"),
+            TestEnum::decode_field("12=bar", 29),
             Err(FixParseError::InvalidKeyId(12))
         );
-        assert_eq!(TestEnum::decode_field("29=opt1"), Ok(TestEnum::Opt1));
-        assert_eq!(TestEnum::decode_field("29=opt2"), Ok(TestEnum::Opt2));
+        assert_eq!(TestEnum::decode_field("29=opt1", 29), Ok(TestEnum::Opt1));
+        assert_eq!(TestEnum::decode_field("29=opt2", 29), Ok(TestEnum::Opt2));
     }
 }

@@ -187,6 +187,18 @@ impl GroupRef {
 pub enum {cls_name} {{
 {group_elements}
 }}
+
+impl AsFixMessageField for {cls_name} {{
+    fn as_fix_value(&self) -> String {{
+        match *self {{
+            _ => panic!(),
+        }}
+    }}
+
+    fn as_fix_key(&self) -> u32 {{
+        todo!();
+    }}
+}}
 ",
             cls_name = self.cls_name(cls_prefix),
             group_elements = group_elements,
@@ -275,6 +287,21 @@ fn spec_as_code(cls_name: &str, refs: &Vec<Reference>) -> String {
 #[derive(Debug, PartialEq)]
 pub struct {cls_name} {{
 {fields}
+}}
+
+impl AsFixMessage for {cls_name} {{
+    fn encode_message(&self) -> Vec<u8> {{
+        let fields: Vec<Option<String>> = vec![
+            // TODO
+        ];
+
+        let non_null_fields: Vec<_> = fields
+            .into_iter()
+            .filter_map(|x| x)
+            .collect();
+
+        non_null_fields.join(\"\\x01\").as_bytes().to_vec()
+    }}
 }}
 
 ",
@@ -436,10 +463,6 @@ impl {field_name} {{
     }}
 }}
 
-impl FixFieldID for {field_name} {{
-    const FIELD_ID: u32 = {field_id};
-}}
-
 impl fmt::Display for {field_name} {{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
         write!(f, \"{field_name_upper}({{}})\", self.value)
@@ -449,6 +472,10 @@ impl fmt::Display for {field_name} {{
 impl AsFixMessageField for {field_name} {{
     fn as_fix_value(&self) -> String {{
         format!(\"{{}}\", self.value)
+    }}
+
+    fn as_fix_key(&self) -> u32 {{
+        {field_id}
     }}
 }}
 
@@ -511,10 +538,6 @@ pub enum {field_name} {{
 {field_names}
 }}
 
-impl FixFieldID for {field_name} {{
-    const FIELD_ID: u32 = {field_id};
-}}
-
 impl fmt::Display for {field_name} {{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
         write!(f, \"{{}}\", match *self {{
@@ -528,6 +551,10 @@ impl AsFixMessageField for {field_name} {{
         match *self {{
 {as_field_values}
         }}.to_string()
+    }}
+
+    fn as_fix_key(&self) -> u32 {{
+        {field_id}
     }}
 }}
 
