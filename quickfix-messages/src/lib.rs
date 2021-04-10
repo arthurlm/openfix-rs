@@ -1,3 +1,4 @@
+use format_bytes::format_bytes;
 use std::num::ParseIntError;
 use thiserror::Error;
 
@@ -72,8 +73,8 @@ pub trait AsFixMessageField {
     fn as_fix_key(&self) -> u32;
 
     /// Encode field as "Key=Value"
-    fn encode_field(&self) -> String {
-        format!("{}={}", self.as_fix_key(), self.as_fix_value())
+    fn encode_message(&self) -> Vec<u8> {
+        format_bytes!(b"{}={}", self.as_fix_key(), self.as_fix_value().as_bytes()).to_vec()
     }
 }
 
@@ -162,7 +163,7 @@ mod tests {
         let field = TestStruct {
             value: "foobar".into(),
         };
-        assert_eq!(field.encode_field(), "42=foobar".to_string());
+        assert_eq!(field.encode_message(), b"42=foobar");
     }
 
     #[test]
@@ -220,9 +221,9 @@ mod tests {
     #[test]
     fn test_enum_encode() {
         let field = TestEnum::Opt1;
-        assert_eq!(field.encode_field(), "29=opt1".to_string());
+        assert_eq!(field.encode_message(), b"29=opt1");
         let field = TestEnum::Opt2;
-        assert_eq!(field.encode_field(), "29=opt2".to_string());
+        assert_eq!(field.encode_message(), b"29=opt2");
     }
 
     #[test]
