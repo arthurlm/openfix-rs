@@ -13,8 +13,7 @@ format-bytes = "0.2.0"
 quickfix-spec-generator = { path = "../quickfix-spec-generator" }
 
 [features]
-# default = [ "all" ]
-default = [ "fix44" ]
+default = []
 all = [ "fixt11", "fix40", "fix41", "fix42", "fix43", "fix44"]
 
 fixt11 = []
