@@ -56,7 +56,7 @@ pub mod fix44 {
 }
 
 pub mod prelude {
-    pub use super::{AsFixMessage, FixID, FixParseError, FromFixMessage};
+    pub use super::{AsFixMessage, FixID, FixParseError, FromFixMessage, MessageDest};
 }
 
 pub trait FixID {
@@ -109,6 +109,12 @@ pub trait FromFixMessage: FixID {
             _ => Err(FixParseError::InvalidData),
         }
     }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MessageDest {
+    Admin,
+    App,
 }
 
 #[cfg(test)]

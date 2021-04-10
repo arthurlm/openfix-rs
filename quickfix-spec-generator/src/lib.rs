@@ -121,6 +121,12 @@ impl FieldType {
 /// Reference to FieldDef
 
 fn format_optional_struct_field(required: &Required, field_name: &str, type_name: &str) -> String {
+    // Check if field is not a keyword (like "yield" for example)
+    let field_name = match syn::parse_str::<syn::Ident>(field_name) {
+        Err(_) => format!("r#{}", field_name),
+        Ok(_) => field_name.into(),
+    };
+
     match required {
         Required::Y => format!("{}: {}", field_name, type_name),
         Required::N => format!("{}: Option<{}>", field_name, type_name),
@@ -162,11 +168,11 @@ pub struct GroupRef {
 }
 
 impl GroupRef {
-    fn group_type_name(&self) -> String {
-        format!("Group{}", self.name.to_case(Case::UpperCamel))
+    fn cls_name(&self, cls_prefix: &str) -> String {
+        format!("{}{}", cls_prefix, self.name.to_case(Case::UpperCamel))
     }
 
-    fn as_group_struct(&self) -> String {
+    fn as_group_struct(&self, cls_prefix: &str) -> String {
         let group_elements = self
             .refs
             .iter()
@@ -177,20 +183,20 @@ impl GroupRef {
         format!(
             "
 #[derive(Debug, PartialEq)]
-pub enum {group_type_name} {{
+pub enum {cls_name} {{
 {group_elements}
 }}
 ",
-            group_type_name = self.group_type_name(),
+            cls_name = self.cls_name(cls_prefix),
             group_elements = group_elements,
         )
     }
 
-    fn as_struct_field_item(&self) -> String {
+    fn as_struct_field_item(&self, cls_prefix: &str) -> String {
         format_optional_struct_field(
             &self.required,
             &self.name.to_case(Case::Snake),
-            &self.group_type_name(),
+            &self.cls_name(cls_prefix),
         )
     }
 }
@@ -216,25 +222,66 @@ impl Reference {
         }
     }
 
-    fn as_group_struct(&self) -> String {
+    fn as_group_struct(&self, cls_prefix: &str) -> Option<String> {
         match self {
-            Self::FieldRef(_) => "".to_string(),
-            Self::ComponentRef(_) => "".to_string(),
-            Self::GroupRef(x) => x.as_group_struct(),
+            Self::FieldRef(_) => None,
+            Self::ComponentRef(_) => None,
+            Self::GroupRef(x) => Some(x.as_group_struct(cls_prefix)),
         }
     }
 
-    fn as_struct_field_item(&self) -> String {
+    fn as_struct_field_item(&self, cls_prefix: &str) -> String {
         match self {
             Self::FieldRef(x) => x.as_struct_field_item(),
             Self::ComponentRef(x) => x.as_struct_field_item(),
-            Self::GroupRef(x) => x.as_struct_field_item(),
+            Self::GroupRef(x) => x.as_struct_field_item(cls_prefix),
         }
     }
 }
 
 // =====================================
 // Message spec
+
+#[derive(Debug)]
+struct RefGeneratedCode {
+    classes: String,
+    fields: String,
+}
+
+fn generate_ref_code(refs: &Vec<Reference>, cls_prefix: &str) -> RefGeneratedCode {
+    let classes = refs
+        .iter()
+        .filter_map(|x| x.as_group_struct(cls_prefix))
+        .collect::<Vec<_>>()
+        .join("");
+
+    let fields = refs
+        .iter()
+        .map(|x| format!("\t{},", x.as_struct_field_item(cls_prefix)))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    RefGeneratedCode { classes, fields }
+}
+
+fn spec_as_code(cls_name: &str, refs: &Vec<Reference>) -> String {
+    let gen = generate_ref_code(refs, cls_name);
+
+    format!(
+        "
+{classes}
+
+#[derive(Debug, PartialEq)]
+pub struct {cls_name} {{
+{fields}
+}}
+
+",
+        cls_name = cls_name,
+        fields = gen.fields,
+        classes = gen.classes,
+    )
+}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct HeaderSpec {
@@ -244,33 +291,7 @@ pub struct HeaderSpec {
 
 impl HeaderSpec {
     fn as_code(&self) -> String {
-        let groups = self
-            .refs
-            .iter()
-            .map(|x| x.as_group_struct())
-            .collect::<Vec<_>>()
-            .join("");
-
-        let fields = self
-            .refs
-            .iter()
-            .map(|x| format!("\t{},", x.as_struct_field_item()))
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        format!(
-            "
-{groups}
-
-#[derive(Debug, PartialEq)]
-struct MessageHeader {{
-{fields}
-}}
-
-",
-            fields = fields,
-            groups = groups,
-        )
+        spec_as_code("MessageHeader", &self.refs)
     }
 }
 
@@ -282,33 +303,7 @@ pub struct TrailerSpec {
 
 impl TrailerSpec {
     fn as_code(&self) -> String {
-        let groups = self
-            .refs
-            .iter()
-            .map(|x| x.as_group_struct())
-            .collect::<Vec<_>>()
-            .join("");
-
-        let fields = self
-            .refs
-            .iter()
-            .map(|x| format!("\t{},", x.as_struct_field_item()))
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        format!(
-            "
-{groups}
-
-#[derive(Debug, PartialEq)]
-struct MessageTrailer {{
-{fields}
-}}
-
-",
-            fields = fields,
-            groups = groups,
-        )
+        spec_as_code("MessageTrailer", &self.refs)
     }
 }
 
@@ -327,11 +322,61 @@ pub struct Message {
     refs: Vec<Reference>,
 }
 
+impl Message {
+    fn message_cls_name(&self) -> String {
+        format!("Message{}", self.name)
+    }
+
+    fn message_dest(&self) -> &'static str {
+        match &self.msgcat {
+            MessageCategory::Admin => "MessageDest::Admin",
+            MessageCategory::App => "MessageDest::App",
+        }
+    }
+
+    fn as_code(&self) -> String {
+        let gen = generate_ref_code(&self.refs, &self.name);
+
+        format!(
+            "
+{classes}
+
+#[derive(Debug, PartialEq)]
+pub struct {message_cls_name} {{
+    // Common fields
+    header: MessageHeader,
+    trailer: MessageTrailer,
+
+    // Custom fields
+{fields}
+}}
+
+impl {message_cls_name} {{
+    pub const MESSAGE_DEST: MessageDest = {message_dest};
+    pub const MESSAGE_TYPE: &'static str = \"{msg_type}\";
+}}
+
+",
+            message_cls_name = self.message_cls_name(),
+            message_dest = self.message_dest(),
+            msg_type = self.msgtype,
+            classes = gen.classes,
+            fields = gen.fields,
+        )
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Component {
     name: String,
     #[serde(rename = "$value", default)]
     refs: Vec<Reference>,
+}
+
+impl Component {
+    fn as_code(&self) -> String {
+        spec_as_code(&self.name, &self.refs)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -573,6 +618,9 @@ use crate::prelude::*;
 #[allow(unused_imports)]
 use super::fields::*;
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 ",
         )?;
 
@@ -589,6 +637,18 @@ use super::fields::*;
         // Generate trailers
         if let Some(trailer) = &self.trailer {
             write!(f_messages, "{}", trailer.as_code())?;
+        }
+
+        // Generate components
+        if let Some(component) = &self.component {
+            for item in &component.items {
+                write!(f_messages, "{}", item.as_code())?;
+            }
+        }
+
+        // Generate messages
+        for message in &self.message.items {
+            write!(f_messages, "{}", message.as_code())?;
         }
 
         Ok(())
