@@ -134,8 +134,8 @@ macro_rules! sanitize_field_name {
 fn format_optional_struct_field(required: &Required, field_name: &str, type_name: &str) -> String {
     let field_name = sanitize_field_name!(field_name);
     match required {
-        Required::Y => format!("{}: {}", field_name, type_name),
-        Required::N => format!("{}: Option<{}>", field_name, type_name),
+        Required::Y => format!("pub {}: {}", field_name, type_name),
+        Required::N => format!("pub {}: Option<{}>", field_name, type_name),
     }
 }
 
