@@ -344,9 +344,9 @@ pub struct {cls_name} {{
 
 impl AsFixMessage for {cls_name} {{
     fn encode_message(&self) -> Vec<u8> {{
-        let fields: Vec<Option<_>> = vec![
+        let fields = std::array::IntoIter::new([
 {fields_encode}
-        ];
+        ]);
 
         let mut result = vec![];
         for field in fields {{
@@ -465,11 +465,11 @@ impl {message_cls_name} {{
 
 impl AsFixMessage for {message_cls_name} {{
     fn encode_message(&self) -> Vec<u8> {{
-        let fields: Vec<Option<_>> = vec![
+        let fields = std::array::IntoIter::new([
             Some(self.header.encode_message()),
 {fields_encode}
             Some(self.trailer.encode_message()),
-        ];
+        ]);
 
         let mut result = vec![];
         for field in fields {{
