@@ -121,16 +121,29 @@ impl FieldType {
 // =====================================
 /// Reference to FieldDef
 
-fn format_optional_struct_field(required: &Required, field_name: &str, type_name: &str) -> String {
+macro_rules! sanitize_field_name {
     // Check if field is not a keyword (like "yield" for example)
-    let field_name = match syn::parse_str::<syn::Ident>(field_name) {
-        Err(_) => format!("r#{}", field_name),
-        Ok(_) => field_name.into(),
+    ($x:expr) => {
+        match syn::parse_str::<syn::Ident>($x) {
+            Err(_) => format!("r#{}", $x),
+            Ok(_) => $x.into(),
+        }
     };
+}
 
+fn format_optional_struct_field(required: &Required, field_name: &str, type_name: &str) -> String {
+    let field_name = sanitize_field_name!(field_name);
     match required {
-        Required::Y => format!("{}: {}", field_name, type_name),
-        Required::N => format!("{}: Option<{}>", field_name, type_name),
+        Required::Y => format!("pub {}: {}", field_name, type_name),
+        Required::N => format!("pub {}: Option<{}>", field_name, type_name),
+    }
+}
+
+fn format_optional_function_call(required: &Required, field_name: &str, call_name: &str) -> String {
+    let field_name = sanitize_field_name!(field_name);
+    match required {
+        Required::Y => format!("Some(self.{}.{})", field_name, call_name),
+        Required::N => format!("self.{}.as_ref().map(|x| x.{})", field_name, call_name),
     }
 }
 
@@ -144,6 +157,10 @@ impl FieldRef {
     fn as_struct_field_item(&self) -> String {
         format_optional_struct_field(&self.required, &self.name.to_case(Case::Snake), &self.name)
     }
+
+    fn as_function_call(&self, call_name: &str) -> String {
+        format_optional_function_call(&self.required, &self.name.to_case(Case::Snake), call_name)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -156,6 +173,10 @@ pub struct ComponentRef {
 impl ComponentRef {
     fn as_struct_field_item(&self) -> String {
         format_optional_struct_field(&self.required, &self.name.to_case(Case::Snake), &self.name)
+    }
+
+    fn as_function_call(&self, call_name: &str) -> String {
+        format_optional_function_call(&self.required, &self.name.to_case(Case::Snake), call_name)
     }
 }
 
@@ -174,12 +195,22 @@ impl GroupRef {
     }
 
     fn as_group_struct(&self, cls_prefix: &str) -> String {
-        let group_elements = self
+        let group_elements: Vec<_> = self
             .refs
             .iter()
             .map(|x| format!("\t{0}({0}),", x.as_type_value()))
-            .collect::<Vec<_>>()
-            .join("\n");
+            .collect();
+
+        let group_encode: Vec<_> = self
+            .refs
+            .iter()
+            .map(|x| {
+                format!(
+                    "\t\t\tSelf::{}(ref x) => x.encode_message(),",
+                    x.as_type_value()
+                )
+            })
+            .collect();
 
         format!(
             "
@@ -187,9 +218,18 @@ impl GroupRef {
 pub enum {cls_name} {{
 {group_elements}
 }}
+
+impl AsFixMessage for {cls_name} {{
+    fn encode_message(&self) -> Vec<u8> {{
+        match *self {{
+{group_encode}
+        }}
+    }}
+}}
 ",
             cls_name = self.cls_name(cls_prefix),
-            group_elements = group_elements,
+            group_elements = group_elements.join("\n"),
+            group_encode = group_encode.join("\n"),
         )
     }
 
@@ -199,6 +239,10 @@ pub enum {cls_name} {{
             &self.name.to_case(Case::Snake),
             &self.cls_name(cls_prefix),
         )
+    }
+
+    fn as_function_call(&self, call_name: &str, _cls_prefix: &str) -> String {
+        format_optional_function_call(&self.required, &self.name.to_case(Case::Snake), call_name)
     }
 }
 
@@ -238,6 +282,14 @@ impl Reference {
             Self::GroupRef(x) => x.as_struct_field_item(cls_prefix),
         }
     }
+
+    fn as_function_call(&self, cls_prefix: &str, call_name: &str) -> String {
+        match self {
+            Self::FieldRef(x) => x.as_function_call(call_name),
+            Self::ComponentRef(x) => x.as_function_call(call_name),
+            Self::GroupRef(x) => x.as_function_call(call_name, cls_prefix),
+        }
+    }
 }
 
 // =====================================
@@ -245,24 +297,37 @@ impl Reference {
 
 #[derive(Debug)]
 struct RefGeneratedCode {
-    classes: String,
-    fields: String,
+    classes: Vec<String>,
+    fields: Vec<String>,
+    fields_encode: Vec<String>,
 }
 
 fn generate_ref_code(refs: &Vec<Reference>, cls_prefix: &str) -> RefGeneratedCode {
     let classes = refs
         .iter()
         .filter_map(|x| x.as_group_struct(cls_prefix))
-        .collect::<Vec<_>>()
-        .join("");
+        .collect();
 
     let fields = refs
         .iter()
         .map(|x| format!("\t{},", x.as_struct_field_item(cls_prefix)))
-        .collect::<Vec<_>>()
-        .join("\n");
+        .collect();
 
-    RefGeneratedCode { classes, fields }
+    let fields_encode = refs
+        .iter()
+        .map(|x| {
+            format!(
+                "\t\t\t{},",
+                x.as_function_call(cls_prefix, "encode_message()")
+            )
+        })
+        .collect();
+
+    RefGeneratedCode {
+        classes,
+        fields,
+        fields_encode,
+    }
 }
 
 fn spec_as_code(cls_name: &str, refs: &Vec<Reference>) -> String {
@@ -277,10 +342,29 @@ pub struct {cls_name} {{
 {fields}
 }}
 
+impl AsFixMessage for {cls_name} {{
+    fn encode_message(&self) -> Vec<u8> {{
+        let fields: Vec<Option<_>> = vec![
+{fields_encode}
+        ];
+
+        let mut result = vec![];
+        for field in fields {{
+            if let Some(field) = field {{
+                result.push(field);
+                result.push(b\"\\x01\".to_vec());
+            }}
+        }}
+
+        result.concat()
+    }}
+}}
+
 ",
         cls_name = cls_name,
-        fields = gen.fields,
-        classes = gen.classes,
+        fields = gen.fields.join("\n"),
+        classes = gen.classes.join("\n"),
+        fields_encode = gen.fields_encode.join("\n"),
     )
 }
 
@@ -379,12 +463,32 @@ impl {message_cls_name} {{
     pub const MESSAGE_TYPE: &'static str = \"{msg_type}\";
 }}
 
+impl AsFixMessage for {message_cls_name} {{
+    fn encode_message(&self) -> Vec<u8> {{
+        let fields: Vec<Option<_>> = vec![
+            Some(self.header.encode_message()),
+{fields_encode}
+            Some(self.trailer.encode_message()),
+        ];
+
+        let mut result = vec![];
+        for field in fields {{
+            if let Some(field) = field {{
+                result.push(field);
+                result.push(b\"\\x01\".to_vec());
+            }}
+        }}
+
+        result.concat()
+    }}
+}}
 ",
             message_cls_name = self.message_cls_name(),
             message_dest = self.message_dest(),
             msg_type = self.msgtype,
-            classes = gen.classes,
-            fields = gen.fields,
+            classes = gen.classes.join("\n"),
+            fields = gen.fields.join("\n"),
+            fields_encode = gen.fields_encode.join("\n"),
         )
     }
 }
@@ -436,23 +540,23 @@ impl {field_name} {{
     }}
 }}
 
-impl FixID for {field_name} {{
-    const FIELD_ID: u32 = {field_id};
-}}
-
 impl fmt::Display for {field_name} {{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
         write!(f, \"{field_name_upper}({{}})\", self.value)
     }}
 }}
 
-impl AsFixMessage for {field_name} {{
+impl AsFixMessageField for {field_name} {{
     fn as_fix_value(&self) -> String {{
         format!(\"{{}}\", self.value)
     }}
+
+    fn as_fix_key(&self) -> u32 {{
+        {field_id}
+    }}
 }}
 
-impl FromFixMessage for {field_name} {{
+impl FromFixMessageField for {field_name} {{
     fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
         let value = value.parse().map_err(|_e| FixParseError::InvalidData)?;
         Ok(Self {{ value }})
@@ -511,10 +615,6 @@ pub enum {field_name} {{
 {field_names}
 }}
 
-impl FixID for {field_name} {{
-    const FIELD_ID: u32 = {field_id};
-}}
-
 impl fmt::Display for {field_name} {{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
         write!(f, \"{{}}\", match *self {{
@@ -523,15 +623,19 @@ impl fmt::Display for {field_name} {{
     }}
 }}
 
-impl AsFixMessage for {field_name} {{
+impl AsFixMessageField for {field_name} {{
     fn as_fix_value(&self) -> String {{
         match *self {{
 {as_field_values}
         }}.to_string()
     }}
+
+    fn as_fix_key(&self) -> u32 {{
+        {field_id}
+    }}
 }}
 
-impl FromFixMessage for {field_name} {{
+impl FromFixMessageField for {field_name} {{
     fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
         match value {{
 {from_field_values}

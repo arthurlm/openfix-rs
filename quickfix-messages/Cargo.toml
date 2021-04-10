@@ -7,6 +7,19 @@ edition = "2018"
 [dependencies]
 chrono = "0.4"
 thiserror = "1.0"
+format-bytes = "0.2.0"
 
 [build-dependencies]
 quickfix-spec-generator = { path = "../quickfix-spec-generator" }
+
+[features]
+# default = [ "all" ]
+default = [ "fix44" ]
+all = [ "fixt11", "fix40", "fix41", "fix42", "fix43", "fix44"]
+
+fixt11 = []
+fix40 = []
+fix41 = []
+fix42 = []
+fix43 = []
+fix44 = []

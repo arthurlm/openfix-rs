@@ -43,6 +43,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "format-bytes"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c4e89040c7fd7b4e6ba2820ac705a45def8a0c098ec78d170ae88f1ef1d5762"
+dependencies = [
+ "format-bytes-macros",
+ "proc-macro-hack",
+]
+
+[[package]]
+name = "format-bytes-macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b05089e341a0460449e2210c3bf7b61597860b07f0deae58da38dbed0a4c6b6d"
+dependencies = [
+ "proc-macro-hack",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -80,6 +102,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro-hack"
+version = "0.5.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -103,6 +131,7 @@ name = "quickfix-messages"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "format-bytes",
  "quickfix-spec-generator",
  "thiserror",
 ]
