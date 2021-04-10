@@ -1,6 +1,8 @@
 use std::num::ParseIntError;
 use thiserror::Error;
 
+pub mod parse_helpers;
+
 pub mod fixt11 {
     pub mod fields {
         include!(concat!(env!("OUT_DIR"), "/FIXT11_fields.rs"));
