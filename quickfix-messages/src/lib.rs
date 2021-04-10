@@ -58,15 +58,17 @@ pub mod fix44 {
 }
 
 pub mod prelude {
-    pub use super::{AsFixMessage, FixID, FixParseError, FromFixMessage, MessageDest};
+    pub use super::{
+        AsFixMessageField, FixFieldID, FixParseError, FromFixMessageField, MessageDest,
+    };
 }
 
-pub trait FixID {
+pub trait FixFieldID {
     /// FIX field ID
     const FIELD_ID: u32;
 }
 
-pub trait AsFixMessage: FixID {
+pub trait AsFixMessageField: FixFieldID {
     /// FIX value representation
     fn as_fix_value(&self) -> String;
 
@@ -88,7 +90,7 @@ pub enum FixParseError {
     InvalidData,
 }
 
-pub trait FromFixMessage: FixID {
+pub trait FromFixMessageField: FixFieldID {
     /// FIX value representation
     fn from_fix_value(value: &str) -> Result<Self, FixParseError>
     where
@@ -128,17 +130,17 @@ mod tests {
         value: String,
     }
 
-    impl FixID for TestStruct {
+    impl FixFieldID for TestStruct {
         const FIELD_ID: u32 = 42;
     }
 
-    impl AsFixMessage for TestStruct {
+    impl AsFixMessageField for TestStruct {
         fn as_fix_value(&self) -> String {
             self.value.clone()
         }
     }
 
-    impl FromFixMessage for TestStruct {
+    impl FromFixMessageField for TestStruct {
         fn from_fix_value(value: &str) -> Result<Self, FixParseError> {
             Ok(Self {
                 value: value.into(),
@@ -182,11 +184,11 @@ mod tests {
         Opt2,
     }
 
-    impl FixID for TestEnum {
+    impl FixFieldID for TestEnum {
         const FIELD_ID: u32 = 29;
     }
 
-    impl AsFixMessage for TestEnum {
+    impl AsFixMessageField for TestEnum {
         fn as_fix_value(&self) -> String {
             match *self {
                 Self::Opt1 => "opt1",
@@ -196,7 +198,7 @@ mod tests {
         }
     }
 
-    impl FromFixMessage for TestEnum {
+    impl FromFixMessageField for TestEnum {
         fn from_fix_value(value: &str) -> Result<Self, FixParseError> {
             match value {
                 "opt1" => Ok(Self::Opt1),

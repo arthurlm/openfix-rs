@@ -436,7 +436,7 @@ impl {field_name} {{
     }}
 }}
 
-impl FixID for {field_name} {{
+impl FixFieldID for {field_name} {{
     const FIELD_ID: u32 = {field_id};
 }}
 
@@ -446,13 +446,13 @@ impl fmt::Display for {field_name} {{
     }}
 }}
 
-impl AsFixMessage for {field_name} {{
+impl AsFixMessageField for {field_name} {{
     fn as_fix_value(&self) -> String {{
         format!(\"{{}}\", self.value)
     }}
 }}
 
-impl FromFixMessage for {field_name} {{
+impl FromFixMessageField for {field_name} {{
     fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
         let value = value.parse().map_err(|_e| FixParseError::InvalidData)?;
         Ok(Self {{ value }})
@@ -511,7 +511,7 @@ pub enum {field_name} {{
 {field_names}
 }}
 
-impl FixID for {field_name} {{
+impl FixFieldID for {field_name} {{
     const FIELD_ID: u32 = {field_id};
 }}
 
@@ -523,7 +523,7 @@ impl fmt::Display for {field_name} {{
     }}
 }}
 
-impl AsFixMessage for {field_name} {{
+impl AsFixMessageField for {field_name} {{
     fn as_fix_value(&self) -> String {{
         match *self {{
 {as_field_values}
@@ -531,7 +531,7 @@ impl AsFixMessage for {field_name} {{
     }}
 }}
 
-impl FromFixMessage for {field_name} {{
+impl FromFixMessageField for {field_name} {{
     fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
         match value {{
 {from_field_values}
