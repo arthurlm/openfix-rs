@@ -1,5 +1,6 @@
 use format_bytes::format_bytes;
 use std::num::ParseIntError;
+use std::str::Utf8Error;
 use thiserror::Error;
 
 pub mod dec_helpers;
@@ -120,21 +121,25 @@ pub enum FixParseError {
 
     #[error("invalid data")]
     InvalidData,
+
+    #[error("invalid string")]
+    InvalidString(#[from] Utf8Error),
 }
 
 pub trait FromFixMessageField {
     /// FIX value representation
-    fn from_fix_value(value: &str) -> Result<Self, FixParseError>
+    fn from_fix_value(value: &[u8]) -> Result<Self, FixParseError>
     where
         Self: Sized;
 
-    fn decode_field(value: &str, field_id: u32) -> Result<Self, FixParseError>
+    fn decode_field(value: &[u8], field_id: u32) -> Result<Self, FixParseError>
     where
         Self: Sized,
     {
-        let values: Vec<_> = value.splitn(2, '=').collect();
+        let values: Vec<_> = value.splitn(2, |x| *x == b'=').collect();
         match values[..] {
             [key, payload] => {
+                let key = std::str::from_utf8(key)?;
                 let key_id: i64 = key.parse()?;
                 if key_id as u32 == field_id {
                     Self::from_fix_value(payload)
@@ -183,9 +188,9 @@ mod tests {
     }
 
     impl FromFixMessageField for TestStruct {
-        fn from_fix_value(value: &str) -> Result<Self, FixParseError> {
+        fn from_fix_value(value: &[u8]) -> Result<Self, FixParseError> {
             Ok(Self {
-                value: value.into(),
+                value: std::str::from_utf8(value)?.to_string(),
             })
         }
     }
@@ -201,19 +206,19 @@ mod tests {
     #[test]
     fn test_struct_decode() {
         assert_eq!(
-            TestStruct::decode_field("foo", 42),
+            TestStruct::decode_field(b"foo", 42),
             Err(FixParseError::InvalidData)
         );
         assert_eq!(
-            TestStruct::decode_field("foo=bar", 42),
+            TestStruct::decode_field(b"foo=bar", 42),
             Err(FixParseError::InvalidKey("foo".parse::<i32>().unwrap_err()))
         );
         assert_eq!(
-            TestStruct::decode_field("12=bar", 42),
+            TestStruct::decode_field(b"12=bar", 42),
             Err(FixParseError::InvalidKeyId(12))
         );
         assert_eq!(
-            TestStruct::decode_field("42=foobar", 42),
+            TestStruct::decode_field(b"42=foobar", 42),
             Ok(TestStruct {
                 value: "foobar".into(),
             })
@@ -241,10 +246,10 @@ mod tests {
     }
 
     impl FromFixMessageField for TestEnum {
-        fn from_fix_value(value: &str) -> Result<Self, FixParseError> {
+        fn from_fix_value(value: &[u8]) -> Result<Self, FixParseError> {
             match value {
-                "opt1" => Ok(Self::Opt1),
-                "opt2" => Ok(Self::Opt2),
+                b"opt1" => Ok(Self::Opt1),
+                b"opt2" => Ok(Self::Opt2),
                 _ => Err(FixParseError::InvalidData),
             }
         }
@@ -261,18 +266,18 @@ mod tests {
     #[test]
     fn test_enum_decode() {
         assert_eq!(
-            TestEnum::decode_field("foo", 29),
+            TestEnum::decode_field(b"foo", 29),
             Err(FixParseError::InvalidData)
         );
         assert_eq!(
-            TestEnum::decode_field("foo=bar", 29),
+            TestEnum::decode_field(b"foo=bar", 29),
             Err(FixParseError::InvalidKey("foo".parse::<i32>().unwrap_err()))
         );
         assert_eq!(
-            TestEnum::decode_field("12=bar", 29),
+            TestEnum::decode_field(b"12=bar", 29),
             Err(FixParseError::InvalidKeyId(12))
         );
-        assert_eq!(TestEnum::decode_field("29=opt1", 29), Ok(TestEnum::Opt1));
-        assert_eq!(TestEnum::decode_field("29=opt2", 29), Ok(TestEnum::Opt2));
+        assert_eq!(TestEnum::decode_field(b"29=opt1", 29), Ok(TestEnum::Opt1));
+        assert_eq!(TestEnum::decode_field(b"29=opt2", 29), Ok(TestEnum::Opt2));
     }
 }

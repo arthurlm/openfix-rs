@@ -555,7 +555,8 @@ impl AsFixMessageField for {field_name} {{
 }}
 
 impl FromFixMessageField for {field_name} {{
-    fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
+    fn from_fix_value(value: &[u8]) -> Result<Self, FixParseError> {{
+        let value = std::str::from_utf8(value)?;
         let value = value.parse().map_err(|_e| FixParseError::InvalidData)?;
         Ok(Self {{ value }})
     }}
@@ -602,7 +603,7 @@ impl FromFixMessageField for {field_name} {{
             let from_field_values = self
                 .values
                 .iter()
-                .map(|x| format!("\t\t\t\"{}\" => Ok(Self::{}),", x.value, x.as_rust_desc()))
+                .map(|x| format!("\t\t\tb\"{}\" => Ok(Self::{}),", x.value, x.as_rust_desc()))
                 .collect::<Vec<_>>()
                 .join("\n");
 
@@ -634,7 +635,7 @@ impl AsFixMessageField for {field_name} {{
 }}
 
 impl FromFixMessageField for {field_name} {{
-    fn from_fix_value(value: &str) -> Result<Self, FixParseError> {{
+    fn from_fix_value(value: &[u8]) -> Result<Self, FixParseError> {{
         match value {{
 {from_field_values}
             _ => Err(FixParseError::InvalidData),
