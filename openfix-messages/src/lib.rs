@@ -88,7 +88,7 @@ pub mod prelude {
     };
 }
 
-use format_bytes::format_bytes;
+use std::io::{self, Write};
 use std::str::Utf8Error;
 use thiserror::Error;
 
@@ -102,8 +102,11 @@ pub trait AsFixMessageField {
     fn as_fix_value(&self) -> String;
 
     /// Encode field as "Key=Value"
-    fn encode_message(&self) -> Vec<u8> {
-        format_bytes!(b"{}={}\x01", Self::FIX_KEY, self.as_fix_value().as_bytes()).to_vec()
+    fn encode_message<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {
+        write!(writer, "{}={}\x01", Self::FIX_KEY, self.as_fix_value())
     }
 }
 
@@ -140,7 +143,9 @@ pub trait FromFixMessageField: AsFixMessageField {
 }
 
 pub trait AsFixMessage {
-    fn encode_message(&self) -> Vec<u8>;
+    fn encode_message<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write;
 }
 
 pub trait FromFixMessage {
@@ -182,12 +187,20 @@ mod tests {
         }
     }
 
+    macro_rules! encode_field {
+        ($field:expr) => {{
+            let mut payload = vec![];
+            $field.encode_message(&mut payload).unwrap();
+            payload
+        }};
+    }
+
     #[test]
     fn test_struct_encode() {
         let field = TestStruct {
             value: "foobar".into(),
         };
-        assert_eq!(field.encode_message(), b"42=foobar\x01");
+        assert_eq!(encode_field!(field), b"42=foobar\x01");
     }
 
     #[test]
@@ -243,9 +256,9 @@ mod tests {
     #[test]
     fn test_enum_encode() {
         let field = TestEnum::Opt1;
-        assert_eq!(field.encode_message(), b"29=opt1\x01");
+        assert_eq!(encode_field!(field), b"29=opt1\x01");
         let field = TestEnum::Opt2;
-        assert_eq!(field.encode_message(), b"29=opt2\x01");
+        assert_eq!(encode_field!(field), b"29=opt2\x01");
     }
 
     #[test]

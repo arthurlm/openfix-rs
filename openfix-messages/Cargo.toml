@@ -14,6 +14,7 @@ openfix-spec-generator = { path = "../openfix-spec-generator" }
 
 [dev-dependencies]
 openfix-messages= { path = ".", features = ["test_spec"] }
+anyhow = "1.0"
 
 [features]
 default = []

@@ -27,14 +27,17 @@ fn build_hb() -> MessageHeartbeat {
 }
 
 #[test]
-fn test_serialize() {
+fn test_serialize() -> anyhow::Result<()> {
     let message = build_hb();
     let envelope_builder = FixEnvelopeBuilder::new();
 
-    let payload = message.encode_message();
+    let mut payload = vec![];
+    message.encode_message(&mut payload)?;
     let data = envelope_builder.build_message(&payload);
     assert_eq!(
         data,
         b"8=FIX.4.4\x019=63\x0135=0\x0149=BROKER\x0156=MARKET\x0134=23593\x0152=1618082857.9780622\x011128=4\x0110=240\x01".to_vec()
     );
+
+    Ok(())
 }

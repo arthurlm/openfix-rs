@@ -38,7 +38,8 @@ fn bench_serialize(bencher: &mut Bencher) {
     let envelope_builder = FixEnvelopeBuilder::new();
 
     bencher.iter(|| {
-        let payload = message.encode_message();
+        let mut payload = vec![];
+        message.encode_message(&mut payload).unwrap();
         let _data = envelope_builder.build_message(&payload);
     });
 }
