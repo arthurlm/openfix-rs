@@ -2,7 +2,8 @@ use format_bytes::format_bytes;
 use std::num::ParseIntError;
 use thiserror::Error;
 
-pub mod parse_helpers;
+pub mod dec_helpers;
+pub mod enc_helpers;
 
 #[cfg(feature = "fixt11")]
 pub mod fixt11 {
@@ -74,6 +75,16 @@ pub mod test_spec {
     }
 }
 
+#[cfg(feature = "test_spec")]
+pub mod test_spec_sig {
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/TEST_SPEC_SIG_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/TEST_SPEC_SIG_messages.rs"));
+    }
+}
+
 pub mod prelude {
     pub use super::{
         AsFixMessage, AsFixMessageField, FixParseError, FromFixMessage, FromFixMessageField,
@@ -90,7 +101,12 @@ pub trait AsFixMessageField {
 
     /// Encode field as "Key=Value"
     fn encode_message(&self) -> Vec<u8> {
-        format_bytes!(b"{}={}", self.as_fix_key(), self.as_fix_value().as_bytes()).to_vec()
+        format_bytes!(
+            b"{}={}\x01",
+            self.as_fix_key(),
+            self.as_fix_value().as_bytes()
+        )
+        .to_vec()
     }
 }
 
@@ -179,7 +195,7 @@ mod tests {
         let field = TestStruct {
             value: "foobar".into(),
         };
-        assert_eq!(field.encode_message(), b"42=foobar");
+        assert_eq!(field.encode_message(), b"42=foobar\x01");
     }
 
     #[test]
@@ -237,9 +253,9 @@ mod tests {
     #[test]
     fn test_enum_encode() {
         let field = TestEnum::Opt1;
-        assert_eq!(field.encode_message(), b"29=opt1");
+        assert_eq!(field.encode_message(), b"29=opt1\x01");
         let field = TestEnum::Opt2;
-        assert_eq!(field.encode_message(), b"29=opt2");
+        assert_eq!(field.encode_message(), b"29=opt2\x01");
     }
 
     #[test]

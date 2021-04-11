@@ -18,13 +18,18 @@ Non goals:
   serialization / deserialisation. Just switch to FPGA for this kind
   of latencies.
 
+  See benchmark for more information.
+
+  Serialize simple messages ~= 1.2 micros
+
 - Provide a full FIX engine
 
 ## Code samples
 
 Here some integration tests to show code usages:
 
-- [serialization](./quickfix-messages/tests/test_serialize.rs)
+- [serialization with no trailers](./quickfix-messages/tests/serialize_empty_trailers.rs)
+- [serialization with signature](./quickfix-messages/tests/serialize_with_trailers.rs)
 
 ## State of the project
 

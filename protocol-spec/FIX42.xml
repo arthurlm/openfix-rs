@@ -1,7 +1,5 @@
 <fix type='FIX' major='4' minor='2' servicepack='0'>
  <header>
-  <field name='BeginString' required='Y' />
-  <field name='BodyLength' required='Y' />
   <field name='MsgType' required='Y' />
   <field name='SenderCompID' required='Y' />
   <field name='TargetCompID' required='Y' />
@@ -1597,7 +1595,6 @@
  <trailer>
   <field name='SignatureLength' required='N' />
   <field name='Signature' required='N' />
-  <field name='CheckSum' required='Y' />
  </trailer>
  <components />
  <fields>
@@ -1617,9 +1614,6 @@
   </field>
   <field number='6' name='AvgPx' type='PRICE' />
   <field number='7' name='BeginSeqNo' type='INT' />
-  <field number='8' name='BeginString' type='STRING' />
-  <field number='9' name='BodyLength' type='INT' />
-  <field number='10' name='CheckSum' type='STRING' />
   <field number='11' name='ClOrdID' type='STRING' />
   <field number='12' name='Commission' type='AMT' />
   <field number='13' name='CommType' type='CHAR'>

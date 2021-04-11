@@ -1,17 +1,10 @@
-#![feature(test)]
-
-extern crate test;
-
-use test::Bencher;
-
+use quickfix_messages::enc_helpers::FixEnvelopeBuilder;
 use quickfix_messages::test_spec::fields::*;
 use quickfix_messages::test_spec::messages::*;
 use quickfix_messages::AsFixMessage;
 
 fn build_header() -> MessageHeader {
     MessageHeader {
-        begin_string: BeginString::new("FIX4.2".into()),
-        body_length: BodyLength::new(100),
         msg_type: MsgType::Heartbeat,
         sender_comp_id: SenderCompID::new("BROKER".into()),
         target_comp_id: TargetCompID::new("MARKET".into()),
@@ -22,9 +15,7 @@ fn build_header() -> MessageHeader {
 }
 
 fn build_trailer() -> MessageTrailer {
-    MessageTrailer {
-        check_sum: CheckSum::new("XXX".into()),
-    }
+    MessageTrailer {}
 }
 
 fn build_hb() -> MessageHeartbeat {
@@ -35,8 +26,15 @@ fn build_hb() -> MessageHeartbeat {
     }
 }
 
-#[bench]
-fn bench_serialize(bencher: &mut Bencher) {
+#[test]
+fn test_serialize() {
     let message = build_hb();
-    bencher.iter(|| message.encode_message());
+    let envelope_builder = FixEnvelopeBuilder::new();
+
+    let payload = message.encode_message();
+    let data = envelope_builder.build_message(&payload);
+    assert_eq!(
+        data,
+        b"8=FIX.4.4\x019=63\x0135=0\x0149=BROKER\x0156=MARKET\x0134=23593\x0152=1618082857.9780622\x011128=4\x0110=240\x01".to_vec()
+    );
 }
