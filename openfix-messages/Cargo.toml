@@ -1,5 +1,5 @@
 [package]
-name = "quickfix-messages"
+name = "openfix-messages"
 version = "0.1.0"
 authors = ["Arthur LE MOIGNE <arthur.lemoigne@gmail.com>"]
 edition = "2018"
@@ -10,10 +10,10 @@ thiserror = "1.0"
 format-bytes = "0.2.0"
 
 [build-dependencies]
-quickfix-spec-generator = { path = "../quickfix-spec-generator" }
+openfix-spec-generator = { path = "../openfix-spec-generator" }
 
 [dev-dependencies]
-quickfix-messages= { path = ".", features = ["test_spec"] }
+openfix-messages= { path = ".", features = ["test_spec"] }
 
 [features]
 default = []

@@ -1,7 +1,13 @@
-use quickfix_messages::enc_helpers::FixEnvelopeBuilder;
-use quickfix_messages::test_spec::fields::*;
-use quickfix_messages::test_spec::messages::*;
-use quickfix_messages::AsFixMessage;
+#![feature(test)]
+
+extern crate test;
+
+use test::Bencher;
+
+use openfix_messages::enc_helpers::FixEnvelopeBuilder;
+use openfix_messages::test_spec::fields::*;
+use openfix_messages::test_spec::messages::*;
+use openfix_messages::AsFixMessage;
 
 fn build_header() -> MessageHeader {
     MessageHeader {
@@ -26,15 +32,13 @@ fn build_hb() -> MessageHeartbeat {
     }
 }
 
-#[test]
-fn test_serialize() {
+#[bench]
+fn bench_serialize(bencher: &mut Bencher) {
     let message = build_hb();
     let envelope_builder = FixEnvelopeBuilder::new();
 
-    let payload = message.encode_message();
-    let data = envelope_builder.build_message(&payload);
-    assert_eq!(
-        data,
-        b"8=FIX.4.4\x019=63\x0135=0\x0149=BROKER\x0156=MARKET\x0134=23593\x0152=1618082857.9780622\x011128=4\x0110=240\x01".to_vec()
-    );
+    bencher.iter(|| {
+        let payload = message.encode_message();
+        let _data = envelope_builder.build_message(&payload);
+    });
 }

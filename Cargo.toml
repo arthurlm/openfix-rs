@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "quickfix-spec-generator",
-    "quickfix-messages",
+    "openfix-spec-generator",
+    "openfix-messages",
     "example/custom-dict"
 ]

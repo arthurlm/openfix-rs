@@ -1,5 +1,5 @@
 [package]
-name = "quickfix-spec-generator"
+name = "openfix-spec-generator"
 version = "0.1.0"
 authors = ["Arthur LE MOIGNE <arthur.lemoigne@gmail.com>"]
 edition = "2018"

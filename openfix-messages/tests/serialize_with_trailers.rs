@@ -1,7 +1,7 @@
-use quickfix_messages::enc_helpers::FixEnvelopeBuilder;
-use quickfix_messages::test_spec_sig::fields::*;
-use quickfix_messages::test_spec_sig::messages::*;
-use quickfix_messages::AsFixMessage;
+use openfix_messages::enc_helpers::FixEnvelopeBuilder;
+use openfix_messages::test_spec_sig::fields::*;
+use openfix_messages::test_spec_sig::messages::*;
+use openfix_messages::AsFixMessage;
 
 fn build_header() -> MessageHeader {
     MessageHeader {

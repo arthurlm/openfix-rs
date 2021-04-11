@@ -26,9 +26,9 @@ Non goals:
 
 Here some integration tests to show code usages:
 
-- [serialization with no trailers](./quickfix-messages/tests/serialize_empty_trailers.rs)
-- [serialization with signature](./quickfix-messages/tests/serialize_with_trailers.rs)
-- [deserialization](./quickfix-messages/tests/deserialize.rs)
+- [serialization with no trailers](./openfix-messages/tests/serialize_empty_trailers.rs)
+- [serialization with signature](./openfix-messages/tests/serialize_with_trailers.rs)
+- [deserialization](./openfix-messages/tests/deserialize.rs)
 
 ## State of the project
 

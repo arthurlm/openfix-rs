@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4"
-quickfix-messages = { path = "../../quickfix-messages", features = [ "fix44" ] }
+openfix-messages = { path = "../../openfix-messages", features = [ "fix44" ] }
 
 [build-dependencies]
-quickfix-spec-generator = { path = "../../quickfix-spec-generator" }
+openfix-spec-generator = { path = "../../openfix-spec-generator" }

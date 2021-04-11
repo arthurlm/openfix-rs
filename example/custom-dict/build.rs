@@ -1,4 +1,4 @@
-use quickfix_spec_generator::Builder;
+use openfix_spec_generator::Builder;
 use std::{env, fs};
 
 fn main() {

@@ -38,8 +38,8 @@ name = "custom-dict"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "quickfix-messages",
- "quickfix-spec-generator",
+ "openfix-messages",
+ "openfix-spec-generator",
 ]
 
 [[package]]
@@ -102,6 +102,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "openfix-messages"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "format-bytes",
+ "openfix-messages",
+ "openfix-spec-generator",
+ "thiserror",
+]
+
+[[package]]
+name = "openfix-spec-generator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "convert_case",
+ "quick-xml",
+ "serde",
+ "serde_json",
+ "syn",
+]
+
+[[package]]
 name = "proc-macro-hack"
 version = "0.5.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -124,29 +147,6 @@ checksum = "0452695941410a58c8ce4391707ba9bad26a247173bd9886a05a5e8a8babec75"
 dependencies = [
  "memchr",
  "serde",
-]
-
-[[package]]
-name = "quickfix-messages"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "format-bytes",
- "quickfix-messages",
- "quickfix-spec-generator",
- "thiserror",
-]
-
-[[package]]
-name = "quickfix-spec-generator"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "convert_case",
- "quick-xml",
- "serde",
- "serde_json",
- "syn",
 ]
 
 [[package]]

@@ -4,9 +4,9 @@ extern crate test;
 
 use test::Bencher;
 
-use quickfix_messages::dec_helpers::split_message_items;
-use quickfix_messages::test_spec_sig::messages::*;
-use quickfix_messages::FromFixMessage;
+use openfix_messages::dec_helpers::split_message_items;
+use openfix_messages::test_spec_sig::messages::*;
+use openfix_messages::FromFixMessage;
 
 #[bench]
 fn bench_deserialize(bencher: &mut Bencher) {
