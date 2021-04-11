@@ -20,8 +20,6 @@ Non goals:
 
   See benchmark for more information.
 
-  Serialize simple messages ~= 1.2 micros
-
 - Provide a full FIX engine
 
 ## Code samples
@@ -45,11 +43,11 @@ DONE:
 - _Message_ generator
 - Toolchain to generate library from generated code
 - Message encoder
+- Helper for message checksum and length
 
 TODO:
 
 - Message decoder
-- Helper for message checksum and length
 - Find target library name :thinking: + publish to crates.io
 - Add example usages
 
