@@ -9,6 +9,8 @@
     <field name='ApplVerID' required='N'/>
   </header>
   <trailer>
+    <field name='SignatureLength' required='N'/>
+    <field name='Signature' required='N'/>
   </trailer>
   <messages>
     <message msgcat='admin' msgtype='0' name='Heartbeat'>
@@ -37,5 +39,7 @@
       <value description='FIX43' enum='5'/>
       <value description='FIX44' enum='6'/>
     </field>
+    <field name='Signature' number='89' type='DATA'/>
+    <field name='SignatureLength' number='93' type='LENGTH'/>
   </fields>
 </fix>

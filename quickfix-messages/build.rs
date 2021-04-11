@@ -10,6 +10,7 @@ fn main() {
         .add_path("../protocol-spec/FIX44.xml")
         .add_path("../protocol-spec/FIXT11.xml")
         .add_path("../protocol-spec/TEST_SPEC.xml")
+        .add_path("../protocol-spec/TEST_SPEC_SIG.xml")
         .enable_rustfmt(true);
 
     fs::create_dir_all("./out-preview").unwrap();

@@ -75,6 +75,16 @@ pub mod test_spec {
     }
 }
 
+#[cfg(feature = "test_spec")]
+pub mod test_spec_sig {
+    pub mod fields {
+        include!(concat!(env!("OUT_DIR"), "/TEST_SPEC_SIG_fields.rs"));
+    }
+    pub mod messages {
+        include!(concat!(env!("OUT_DIR"), "/TEST_SPEC_SIG_messages.rs"));
+    }
+}
+
 pub mod prelude {
     pub use super::{
         AsFixMessage, AsFixMessageField, FixParseError, FromFixMessage, FromFixMessageField,
