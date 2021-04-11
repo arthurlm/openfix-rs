@@ -29,6 +29,7 @@ Non goals:
 Here some integration tests to show code usages:
 
 - [serialization with no trailers](./quickfix-messages/tests/serialize_empty_trailers.rs)
+- [serialization with signature](./quickfix-messages/tests/serialize_with_trailers.rs)
 
 ## State of the project
 

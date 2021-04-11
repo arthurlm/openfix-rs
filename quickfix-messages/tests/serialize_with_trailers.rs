@@ -58,6 +58,6 @@ fn test_serialize_signed_trailer() {
     let data = envelope_builder.build_message(&payload);
     assert_eq!(
         data,
-        b"8=FIX.4.4\x019=79\x0135=0\x0149=BROKER\x0156=MARKET\x0134=23593\x0152=1618082857.9780622\x011128=4\x0193=8\x0189=arthurlm\x0110=246\x01".to_vec()
+        b"8=FIX.4.4\x019=80\x0135=0\x0149=BROKER\x0156=MARKET\x0134=23593\x0152=1618082857.9780622\x011128=4\x0193=8\x0189=arthurlm\x0110=239\x01".to_vec()
     );
 }

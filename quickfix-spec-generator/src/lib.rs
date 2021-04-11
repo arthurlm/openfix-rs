@@ -355,7 +355,7 @@ impl AsFixMessage for {cls_name} {{
             }}
         }}
 
-        result.join(&b'\\x01')
+        result.concat()
     }}
 }}
 
@@ -477,7 +477,7 @@ impl AsFixMessage for {message_cls_name} {{
             }}
         }}
 
-        result.join(&b'\\x01')
+        result.concat()
     }}
 }}
 ",
