@@ -33,12 +33,33 @@ fn build_hb() -> MessageHeartbeat {
 }
 
 #[bench]
-fn bench_serialize(bencher: &mut Bencher) {
+fn bench_serialize_no_envelope_empty_vec(bencher: &mut Bencher) {
+    let message = build_hb();
+
+    bencher.iter(|| {
+        let mut payload = Vec::new();
+        message.encode_message(&mut payload).unwrap();
+    });
+}
+
+#[bench]
+fn bench_serialize_no_envelope_reserved_vec(bencher: &mut Bencher) {
+    let message = build_hb();
+
+    bencher.iter(|| {
+        let mut payload = Vec::with_capacity(1024);
+        message.encode_message(&mut payload).unwrap();
+    });
+}
+
+#[bench]
+fn bench_serialize_full(bencher: &mut Bencher) {
     let message = build_hb();
     let envelope_builder = FixEnvelopeBuilder::new();
 
     bencher.iter(|| {
-        let payload = message.encode_message();
+        let mut payload = Vec::with_capacity(1024);
+        message.encode_message(&mut payload).unwrap();
         let _data = envelope_builder.build_message(&payload);
     });
 }

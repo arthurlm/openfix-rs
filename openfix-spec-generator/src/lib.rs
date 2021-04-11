@@ -141,8 +141,11 @@ fn format_optional_struct_field(required: &Required, field_name: &str, type_name
 fn format_optional_function_call(required: &Required, field_name: &str, call_name: &str) -> String {
     let field_name = sanitize_field_name!(field_name);
     match required {
-        Required::Y => format!("Some(self.{}.{})", field_name, call_name),
-        Required::N => format!("self.{}.as_ref().map(|x| x.{})", field_name, call_name),
+        Required::Y => format!("self.{}.{};", field_name, call_name),
+        Required::N => format!(
+            "if let Some(v) = &self.{0} {{ v.{1}; }}",
+            field_name, call_name
+        ),
     }
 }
 
@@ -221,7 +224,7 @@ impl GroupRef {
             .iter()
             .map(|x| {
                 format!(
-                    "\t\t\tSelf::{}(ref x) => x.encode_message(),",
+                    "\t\t\tSelf::{}(ref x) => x.encode_message(writer),",
                     x.as_type_value()
                 )
             })
@@ -241,7 +244,10 @@ pub enum {cls_name} {{
 }}
 
 impl AsFixMessage for {cls_name} {{
-    fn encode_message(&self) -> Vec<u8> {{
+    fn encode_message<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write
+    {{
         match *self {{
 {group_encode}
         }}
@@ -385,8 +391,8 @@ fn generate_ref_code(refs: &Vec<Reference>, cls_prefix: &str) -> RefGeneratedCod
         .iter()
         .map(|x| {
             format!(
-                "\t\t\t{},",
-                x.as_function_call(cls_prefix, "encode_message()")
+                "\t\t{}",
+                x.as_function_call(cls_prefix, "encode_message(writer)?")
             )
         })
         .collect();
@@ -428,19 +434,14 @@ pub struct {cls_name} {{
 }}
 
 impl AsFixMessage for {cls_name} {{
-    fn encode_message(&self) -> Vec<u8> {{
-        let fields = std::array::IntoIter::new([
+    #[allow(unused_variables)]
+    fn encode_message<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write
+    {{
 {fields_encode}
-        ]);
 
-        let mut result: Vec<Vec<u8>> = vec![];
-        for field in fields {{
-            if let Some(field) = field {{
-                result.push(field);
-            }}
-        }}
-
-        result.concat()
+        Ok(())
     }}
 }}
 
@@ -558,21 +559,15 @@ impl {message_cls_name} {{
 }}
 
 impl AsFixMessage for {message_cls_name} {{
-    fn encode_message(&self) -> Vec<u8> {{
-        let fields = std::array::IntoIter::new([
-            Some(self.header.encode_message()),
+    fn encode_message<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write
+    {{
+        self.header.encode_message(writer)?;
 {fields_encode}
-            Some(self.trailer.encode_message()),
-        ]);
+        self.trailer.encode_message(writer)?;
 
-        let mut result = vec![];
-        for field in fields {{
-            if let Some(field) = field {{
-                result.push(field);
-            }}
-        }}
-
-        result.concat()
+        Ok(())
     }}
 }}
 
@@ -654,8 +649,11 @@ impl fmt::Display for {field_name} {{
 impl AsFixMessageField for {field_name} {{
     const FIX_KEY: u32 = {field_id};
 
-    fn as_fix_value(&self) -> String {{
-        format!(\"{{}}\", self.value)
+    fn encode_fix_value<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {{
+        write!(writer, \"{{}}\", self.value)
     }}
 }}
 
@@ -701,7 +699,7 @@ impl FromFixMessageField for {field_name} {{
             let as_field_values = self
                 .values
                 .iter()
-                .map(|x| format!("\t\t\tSelf::{} => \"{}\",", x.as_rust_desc(), x.value))
+                .map(|x| format!("\t\t\t\tSelf::{} => \"{}\",", x.as_rust_desc(), x.value))
                 .collect::<Vec<_>>()
                 .join("\n");
 
@@ -730,10 +728,17 @@ impl fmt::Display for {field_name} {{
 impl AsFixMessageField for {field_name} {{
     const FIX_KEY: u32 = {field_id};
 
-    fn as_fix_value(&self) -> String {{
-        match *self {{
+    fn encode_fix_value<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {{
+        write!(
+            writer,
+            \"{{}}\",
+            match *self {{
 {as_field_values}
-        }}.to_string()
+            }}
+        )
     }}
 }}
 
@@ -831,7 +836,7 @@ impl FixSpec {
             f_fields,
             "
 #[allow(unused_imports)]
-use std::fmt;
+use std::{{fmt, io::{{self, Write}}}};
 
 #[allow(unused_imports)]
 use crate::prelude::*;
@@ -844,6 +849,9 @@ use crate::prelude::*;
             "
 #[allow(unused_imports)]
 use super::fields::*;
+
+#[allow(unused_imports)]
+use std::{{fmt, io::{{self, Write}}}};
 
 #[allow(unused_imports)]
 use crate::prelude::*;
