@@ -37,11 +37,14 @@ DONE:
 
 - FIX dictionary XML parser + data model
 - _Field_ gerator
+- _Message_ generator
 - Toolchain to generate library from generated code
+- Message encoder
 
 TODO:
 
-- _Message_ generator
+- Message decoder
+- Helper for message checksum and length
 - Find target library name :thinking: + publish to crates.io
 - Add example usages
 
