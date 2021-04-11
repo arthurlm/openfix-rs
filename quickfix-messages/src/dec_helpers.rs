@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub type FixFieldItems = HashMap<u32, String>;
+pub type FixFieldItems = HashMap<u32, Vec<u8>>;
 
 const SEP_CHAR: u8 = 0x01;
 
@@ -11,10 +11,10 @@ pub fn split_message_items(data: &[u8]) -> FixFieldItems {
 
             match fields[..] {
                 [field_id, field_data] => {
-                    let field_id = String::from_utf8(field_id.to_vec()).ok()?;
+                    let field_id = std::str::from_utf8(field_id).ok()?;
                     let field_id = field_id.parse::<u32>().ok()?;
 
-                    let field_data = String::from_utf8(field_data.to_vec()).ok()?;
+                    let field_data = field_data.to_vec();
 
                     Some((field_id, field_data))
                 }
@@ -48,20 +48,20 @@ mod tests {
         );
         assert_eq!(
             split_message_items(b"5=foo"),
-            HashMap::from_iter(IntoIter::new([(5, "foo".to_string())]))
+            HashMap::from_iter(IntoIter::new([(5, b"foo".to_vec())]))
         );
         assert_eq!(
             split_message_items(b"5=foo\x012631=bar"),
             HashMap::from_iter(IntoIter::new([
-                (5, "foo".to_string()),
-                (2631, "bar".to_string())
+                (5, b"foo".to_vec()),
+                (2631, b"bar".to_vec())
             ]))
         );
         assert_eq!(
             split_message_items(b"\x01\x01\x015=foo\x012631=bar\x01\x01\x01"),
             HashMap::from_iter(IntoIter::new([
-                (5, "foo".to_string()),
-                (2631, "bar".to_string())
+                (5, b"foo".to_vec()),
+                (2631, b"bar".to_vec())
             ]))
         );
     }
@@ -70,7 +70,7 @@ mod tests {
     fn test_split_message_items_weird_payload() {
         assert_eq!(
             split_message_items(b"5="),
-            HashMap::from_iter(IntoIter::new([(5, "".to_string())]))
+            HashMap::from_iter(IntoIter::new([(5, b"".to_vec())]))
         );
         assert_eq!(
             split_message_items(b"foo=bar"),
