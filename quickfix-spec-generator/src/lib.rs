@@ -348,7 +348,7 @@ impl AsFixMessage for {cls_name} {{
 {fields_encode}
         ]);
 
-        let mut result = vec![];
+        let mut result: Vec<Vec<u8>> = vec![];
         for field in fields {{
             if let Some(field) = field {{
                 result.push(field);
