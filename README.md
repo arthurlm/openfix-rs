@@ -46,11 +46,12 @@ DONE:
 - Message encoder
 - Message decoder
 - Helper for message checksum and length
+- Find target library name :thinking:
 
 TODO:
 
 - Message builder from MsgType field
-- Find target library name :thinking: + publish to crates.io
+- Publish to crates.io
 - Add example usages
 
 ## Why I do not provide full FIX engine
