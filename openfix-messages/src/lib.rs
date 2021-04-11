@@ -99,14 +99,19 @@ pub trait AsFixMessageField {
     const FIX_KEY: u32;
 
     /// FIX value representation
-    fn as_fix_value(&self) -> String;
+    fn encode_fix_value<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write;
 
     /// Encode field as "Key=Value"
     fn encode_message<W>(&self, writer: &mut W) -> io::Result<()>
     where
         W: Write,
     {
-        write!(writer, "{}={}\x01", Self::FIX_KEY, self.as_fix_value())
+        write!(writer, "{}=", Self::FIX_KEY)?;
+        self.encode_fix_value(writer)?;
+        write!(writer, "\x01")?;
+        Ok(())
     }
 }
 
@@ -174,8 +179,11 @@ mod tests {
     impl AsFixMessageField for TestStruct {
         const FIX_KEY: u32 = 42;
 
-        fn as_fix_value(&self) -> String {
-            self.value.clone()
+        fn encode_fix_value<W>(&self, writer: &mut W) -> io::Result<()>
+        where
+            W: Write,
+        {
+            write!(writer, "{}", self.value)
         }
     }
 
@@ -234,12 +242,18 @@ mod tests {
     impl AsFixMessageField for TestEnum {
         const FIX_KEY: u32 = 29;
 
-        fn as_fix_value(&self) -> String {
-            match *self {
-                Self::Opt1 => "opt1",
-                Self::Opt2 => "opt2",
-            }
-            .to_string()
+        fn encode_fix_value<W>(&self, writer: &mut W) -> io::Result<()>
+        where
+            W: Write,
+        {
+            write!(
+                writer,
+                "{}",
+                match *self {
+                    Self::Opt1 => "opt1",
+                    Self::Opt2 => "opt2",
+                }
+            )
         }
     }
 

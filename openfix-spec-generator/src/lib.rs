@@ -649,8 +649,11 @@ impl fmt::Display for {field_name} {{
 impl AsFixMessageField for {field_name} {{
     const FIX_KEY: u32 = {field_id};
 
-    fn as_fix_value(&self) -> String {{
-        format!(\"{{}}\", self.value)
+    fn encode_fix_value<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {{
+        write!(writer, \"{{}}\", self.value)
     }}
 }}
 
@@ -696,7 +699,7 @@ impl FromFixMessageField for {field_name} {{
             let as_field_values = self
                 .values
                 .iter()
-                .map(|x| format!("\t\t\tSelf::{} => \"{}\",", x.as_rust_desc(), x.value))
+                .map(|x| format!("\t\t\t\tSelf::{} => \"{}\",", x.as_rust_desc(), x.value))
                 .collect::<Vec<_>>()
                 .join("\n");
 
@@ -725,10 +728,17 @@ impl fmt::Display for {field_name} {{
 impl AsFixMessageField for {field_name} {{
     const FIX_KEY: u32 = {field_id};
 
-    fn as_fix_value(&self) -> String {{
-        match *self {{
+    fn encode_fix_value<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {{
+        write!(
+            writer,
+            \"{{}}\",
+            match *self {{
 {as_field_values}
-        }}.to_string()
+            }}
+        )
     }}
 }}
 
