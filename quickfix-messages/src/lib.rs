@@ -3,6 +3,7 @@ use std::num::ParseIntError;
 use thiserror::Error;
 
 pub mod dec_helpers;
+pub mod enc_helpers;
 
 #[cfg(feature = "fixt11")]
 pub mod fixt11 {
