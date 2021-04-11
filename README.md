@@ -28,6 +28,7 @@ Here some integration tests to show code usages:
 
 - [serialization with no trailers](./quickfix-messages/tests/serialize_empty_trailers.rs)
 - [serialization with signature](./quickfix-messages/tests/serialize_with_trailers.rs)
+- [deserialization](./quickfix-messages/tests/deserialize.rs)
 
 ## State of the project
 
@@ -43,11 +44,12 @@ DONE:
 - _Message_ generator
 - Toolchain to generate library from generated code
 - Message encoder
+- Message decoder
 - Helper for message checksum and length
 
 TODO:
 
-- Message decoder
+- Message builder from MsgType field
 - Find target library name :thinking: + publish to crates.io
 - Add example usages
 

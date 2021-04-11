@@ -124,7 +124,7 @@ impl FieldType {
 macro_rules! sanitize_field_name {
     // Check if field is not a keyword (like "yield" for example)
     ($x:expr) => {
-        match syn::parse_str::<syn::Ident>($x) {
+        match syn::parse_str::<syn::Ident>(&$x) {
             Err(_) => format!("r#{}", $x),
             Ok(_) => $x.into(),
         }
@@ -132,7 +132,6 @@ macro_rules! sanitize_field_name {
 }
 
 fn format_optional_struct_field(required: &Required, field_name: &str, type_name: &str) -> String {
-    let field_name = sanitize_field_name!(field_name);
     match required {
         Required::Y => format!("pub {}: {}", field_name, type_name),
         Required::N => format!("pub {}: Option<{}>", field_name, type_name),
@@ -154,8 +153,16 @@ pub struct FieldRef {
 }
 
 impl FieldRef {
+    fn as_field_name(&self) -> String {
+        sanitize_field_name!(self.name.to_case(Case::Snake))
+    }
+
+    fn as_class_name<'a>(&'a self) -> &'a str {
+        &self.name
+    }
+
     fn as_struct_field_item(&self) -> String {
-        format_optional_struct_field(&self.required, &self.name.to_case(Case::Snake), &self.name)
+        format_optional_struct_field(&self.required, &self.as_field_name(), self.as_class_name())
     }
 
     fn as_function_call(&self, call_name: &str) -> String {
@@ -171,8 +178,16 @@ pub struct ComponentRef {
 }
 
 impl ComponentRef {
+    fn as_field_name(&self) -> String {
+        sanitize_field_name!(self.name.to_case(Case::Snake))
+    }
+
+    fn as_class_name<'a>(&'a self) -> &'a str {
+        &self.name
+    }
+
     fn as_struct_field_item(&self) -> String {
-        format_optional_struct_field(&self.required, &self.name.to_case(Case::Snake), &self.name)
+        format_optional_struct_field(&self.required, &self.as_field_name(), self.as_class_name())
     }
 
     fn as_function_call(&self, call_name: &str) -> String {
@@ -212,6 +227,12 @@ impl GroupRef {
             })
             .collect();
 
+        let group_decode: Vec<_> = self
+            .refs
+            .iter()
+            .map(|x| format!("\t\ttry_decode!({});", x.as_type_value()))
+            .collect();
+
         format!(
             "
 #[derive(Debug, PartialEq)]
@@ -226,17 +247,39 @@ impl AsFixMessage for {cls_name} {{
         }}
     }}
 }}
+
+impl FromFixMessage for {cls_name} {{
+    fn decode_message(items: &FixFieldItems) -> Result<Self, FixParseError> {{
+        // This may be improved ...
+        macro_rules! try_decode {{
+            ($t:tt) => {{
+                if let Ok(result) = $t::decode_message(items) {{
+                    return Ok(Self::$t(result));
+                }}
+            }};
+        }}
+
+{group_decode}
+
+        Err(FixParseError::InvalidData)
+    }}
+}}
+
 ",
             cls_name = self.cls_name(cls_prefix),
             group_elements = group_elements.join("\n"),
             group_encode = group_encode.join("\n"),
+            group_decode = group_decode.join("\n"),
         )
     }
 
+    fn as_field_name(&self) -> String {
+        sanitize_field_name!(self.name.to_case(Case::Snake))
+    }
     fn as_struct_field_item(&self, cls_prefix: &str) -> String {
         format_optional_struct_field(
             &self.required,
-            &self.name.to_case(Case::Snake),
+            &self.as_field_name(),
             &self.cls_name(cls_prefix),
         )
     }
@@ -267,11 +310,35 @@ impl Reference {
         }
     }
 
+    fn is_required<'a>(&'a self) -> &'a Required {
+        match self {
+            Self::FieldRef(x) => &x.required,
+            Self::ComponentRef(x) => &x.required,
+            Self::GroupRef(x) => &x.required,
+        }
+    }
+
     fn as_group_struct(&self, cls_prefix: &str) -> Option<String> {
         match self {
             Self::FieldRef(_) => None,
             Self::ComponentRef(_) => None,
             Self::GroupRef(x) => Some(x.as_group_struct(cls_prefix)),
+        }
+    }
+
+    fn as_field_name(&self) -> String {
+        match self {
+            Self::FieldRef(x) => x.as_field_name(),
+            Self::ComponentRef(x) => x.as_field_name(),
+            Self::GroupRef(x) => x.as_field_name(),
+        }
+    }
+
+    fn as_class_name(&self, cls_prefix: &str) -> String {
+        match self {
+            Self::FieldRef(x) => x.as_class_name().to_string(),
+            Self::ComponentRef(x) => x.as_class_name().to_string(),
+            Self::GroupRef(x) => x.cls_name(cls_prefix),
         }
     }
 
@@ -300,6 +367,7 @@ struct RefGeneratedCode {
     classes: Vec<String>,
     fields: Vec<String>,
     fields_encode: Vec<String>,
+    fields_decode: Vec<String>,
 }
 
 fn generate_ref_code(refs: &Vec<Reference>, cls_prefix: &str) -> RefGeneratedCode {
@@ -323,10 +391,27 @@ fn generate_ref_code(refs: &Vec<Reference>, cls_prefix: &str) -> RefGeneratedCod
         })
         .collect();
 
+    let fields_decode = refs
+        .iter()
+        .map(|x| match x.is_required() {
+            Required::Y => format!(
+                "\t\t\t{}: {}::decode_message(items)?,",
+                x.as_field_name(),
+                x.as_class_name(cls_prefix),
+            ),
+            Required::N => format!(
+                "\t\t\t{}: {}::decode_message(items).ok(),",
+                x.as_field_name(),
+                x.as_class_name(cls_prefix),
+            ),
+        })
+        .collect();
+
     RefGeneratedCode {
         classes,
         fields,
         fields_encode,
+        fields_decode,
     }
 }
 
@@ -359,11 +444,21 @@ impl AsFixMessage for {cls_name} {{
     }}
 }}
 
+impl FromFixMessage for {cls_name} {{
+    #[allow(unused_variables)]
+    fn decode_message(items: &FixFieldItems) -> Result<Self, FixParseError> {{
+        Ok(Self {{
+{fields_decode}
+        }})
+    }}
+}}
+
 ",
         cls_name = cls_name,
         fields = gen.fields.join("\n"),
         classes = gen.classes.join("\n"),
         fields_encode = gen.fields_encode.join("\n"),
+        fields_decode = gen.fields_decode.join("\n"),
     )
 }
 
@@ -480,6 +575,17 @@ impl AsFixMessage for {message_cls_name} {{
         result.concat()
     }}
 }}
+
+impl FromFixMessage for {message_cls_name} {{
+    #[allow(unused_variables)]
+    fn decode_message(items: &FixFieldItems) -> Result<Self, FixParseError> {{
+        Ok(Self {{
+            header: MessageHeader::decode_message(items)?,
+{fields_decode}
+            trailer: MessageTrailer::decode_message(items)?,
+        }})
+    }}
+}}
 ",
             message_cls_name = self.message_cls_name(),
             message_dest = self.message_dest(),
@@ -487,6 +593,7 @@ impl AsFixMessage for {message_cls_name} {{
             classes = gen.classes.join("\n"),
             fields = gen.fields.join("\n"),
             fields_encode = gen.fields_encode.join("\n"),
+            fields_decode = gen.fields_decode.join("\n"),
         )
     }
 }
@@ -545,12 +652,10 @@ impl fmt::Display for {field_name} {{
 }}
 
 impl AsFixMessageField for {field_name} {{
+    const FIX_KEY: u32 = {field_id};
+
     fn as_fix_value(&self) -> String {{
         format!(\"{{}}\", self.value)
-    }}
-
-    fn as_fix_key(&self) -> u32 {{
-        {field_id}
     }}
 }}
 
@@ -623,14 +728,12 @@ impl fmt::Display for {field_name} {{
 }}
 
 impl AsFixMessageField for {field_name} {{
+    const FIX_KEY: u32 = {field_id};
+
     fn as_fix_value(&self) -> String {{
         match *self {{
 {as_field_values}
         }}.to_string()
-    }}
-
-    fn as_fix_key(&self) -> u32 {{
-        {field_id}
     }}
 }}
 

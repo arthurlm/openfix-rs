@@ -22,9 +22,10 @@ fn build_empty_trailer() -> MessageTrailer {
 }
 
 fn build_signed_trailer() -> MessageTrailer {
+    let author = "arthurlm".to_string();
     MessageTrailer {
-        signature_length: Some(SignatureLength::new(8)),
-        signature: Some(Signature::new("arthurlm".to_string())),
+        signature_length: Some(SignatureLength::new(author.len())),
+        signature: Some(Signature::new(author)),
     }
 }
 
