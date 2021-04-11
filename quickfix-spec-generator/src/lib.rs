@@ -545,12 +545,10 @@ impl fmt::Display for {field_name} {{
 }}
 
 impl AsFixMessageField for {field_name} {{
+    const FIX_KEY: u32 = {field_id};
+
     fn as_fix_value(&self) -> String {{
         format!(\"{{}}\", self.value)
-    }}
-
-    fn as_fix_key(&self) -> u32 {{
-        {field_id}
     }}
 }}
 
@@ -623,14 +621,12 @@ impl fmt::Display for {field_name} {{
 }}
 
 impl AsFixMessageField for {field_name} {{
+    const FIX_KEY: u32 = {field_id};
+
     fn as_fix_value(&self) -> String {{
         match *self {{
 {as_field_values}
         }}.to_string()
-    }}
-
-    fn as_fix_key(&self) -> u32 {{
-        {field_id}
     }}
 }}
 
