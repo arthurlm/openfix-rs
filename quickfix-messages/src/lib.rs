@@ -83,8 +83,8 @@ pub mod test_spec_sig {
 
 pub mod prelude {
     pub use super::{
-        AsFixMessage, AsFixMessageField, FixParseError, FromFixMessage, FromFixMessageField,
-        MessageDest,
+        AsFixMessage, AsFixMessageField, FixFieldItems, FixParseError, FromFixMessage,
+        FromFixMessageField, MessageDest,
     };
 }
 
@@ -92,7 +92,7 @@ use format_bytes::format_bytes;
 use std::str::Utf8Error;
 use thiserror::Error;
 
-use crate::dec_helpers::FixFieldItems;
+pub use crate::dec_helpers::FixFieldItems;
 
 pub trait AsFixMessageField {
     /// Fix key representation
