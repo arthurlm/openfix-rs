@@ -2,7 +2,7 @@ use format_bytes::format_bytes;
 use std::num::ParseIntError;
 use thiserror::Error;
 
-pub mod parse_helpers;
+pub mod dec_helpers;
 
 #[cfg(feature = "fixt11")]
 pub mod fixt11 {
