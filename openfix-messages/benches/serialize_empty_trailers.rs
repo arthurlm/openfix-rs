@@ -58,8 +58,12 @@ fn bench_serialize_full(bencher: &mut Bencher) {
     let envelope_builder = FixEnvelopeBuilder::new();
 
     bencher.iter(|| {
-        let mut payload = Vec::with_capacity(1024);
-        message.encode_message(&mut payload).unwrap();
-        let _data = envelope_builder.build_message(&payload);
+        let mut message_content = Vec::with_capacity(1024);
+        message.encode_message(&mut message_content).unwrap();
+
+        let mut data = Vec::with_capacity(1024);
+        envelope_builder
+            .build_message(&mut data, &message_content)
+            .unwrap();
     });
 }

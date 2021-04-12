@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 chrono = "0.4"
 thiserror = "1.0"
-format-bytes = "0.2.0"
 
 [build-dependencies]
 openfix-spec-generator = { path = "../openfix-spec-generator" }
