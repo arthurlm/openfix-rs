@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::num::Wrapping;
 
 const NUM_BEGIN_STRING: &str = "8";
 const NUM_BODY_LENGTH: &str = "9";
@@ -42,11 +43,11 @@ impl FixEnvelopeBuilder {
 
         macro_rules! bytes_sum {
             ($x:expr) => {
-                $x.iter().map(|x| *x as u64).sum::<u64>()
+                $x.iter().map(|x| Wrapping(*x)).sum::<Wrapping<u8>>()
             };
         }
 
-        let check_sum = (bytes_sum!(header.as_bytes()) + bytes_sum!(data)) % 256;
+        let check_sum = bytes_sum!(header.as_bytes()) + bytes_sum!(data);
 
         writer.write_all(header.as_bytes())?;
         writer.write_all(data)?;
