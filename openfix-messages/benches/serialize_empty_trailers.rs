@@ -46,8 +46,12 @@ fn bench_serialize_no_envelope_empty_vec(bencher: &mut Bencher) {
 fn bench_serialize_no_envelope_reserved_vec(bencher: &mut Bencher) {
     let message = build_hb();
 
+    let mut payload = Vec::with_capacity(1024);
+
     bencher.iter(|| {
-        let mut payload = Vec::with_capacity(1024);
+        payload.clear();
+        assert_eq!(payload.capacity(), 1024);
+
         message.encode_message(&mut payload).unwrap();
     });
 }
@@ -57,11 +61,16 @@ fn bench_serialize_full(bencher: &mut Bencher) {
     let message = build_hb();
     let envelope_builder = FixEnvelopeBuilder::new();
 
-    bencher.iter(|| {
-        let mut message_content = Vec::with_capacity(1024);
-        message.encode_message(&mut message_content).unwrap();
+    let mut message_content = Vec::with_capacity(1024);
+    let mut data = Vec::with_capacity(1024);
 
-        let mut data = Vec::with_capacity(1024);
+    bencher.iter(|| {
+        message_content.clear();
+        assert_eq!(message_content.capacity(), 1024);
+        data.clear();
+        assert_eq!(data.capacity(), 1024);
+
+        message.encode_message(&mut message_content).unwrap();
         envelope_builder
             .build_message(&mut data, &message_content)
             .unwrap();
