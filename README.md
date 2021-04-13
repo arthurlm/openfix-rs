@@ -18,7 +18,7 @@ Non goals:
   serialization / deserialisation. Just switch to FPGA for this kind
   of latencies.
 
-  See benchmark for more information.
+  See [benchmark](https://github.com/arthurlm/openfix-rs/wiki/Benchmark-results) for more information.
 
 - Provide a full FIX engine
 
