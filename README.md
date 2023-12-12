@@ -1,5 +1,7 @@
 # Rust FIX toolbox
 
+**ARCHIVE PROJECT: PLEASE CHECK OUT THIS [NEW](https://github.com/arthurlm/quickfix-rs/) PROJECT FOR REPLACEMENT / IMPROVMENT.**
+
 This library help to build [FIX](https://www.fixtrading.org/) aware applications using Rust.
 
 ## Goals / non goals
